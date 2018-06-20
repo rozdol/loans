@@ -1,0 +1,43 @@
+{
+    "name": "rozdol/loans",
+    "description": "Module to calculate loans",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Alex Titoff",
+            "email": "rozdol@gmail.com"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:rozdol/bi.git"
+        },
+        {
+            "type": "vcs",
+            "url": "git@github.com:rozdol/loans.git"
+        }
+    ],
+    "require": {
+        "php": ">=5.6",
+        "rozdol/bi": "1.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Rozdol\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\Rozdol\\": "tests",
+            "Rozdol\\Loans\\": "src/Loans",
+            "Rozdol\\Planner\\": "src/Loans",
+            "Rozdol\\Intereest\\": "src/Loans"
+
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "*"
+    }
+}
