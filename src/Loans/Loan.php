@@ -2,7 +2,7 @@
 namespace Rozdol\Loans;
 
 use Rozdol\Dates\Dates;
-use Rozdol\Loans\interest;
+use Rozdol\Loans\Interest;
 use Rozdol\Utils\Utils;
 use Rozdol\Html\Html;
 
