@@ -200,6 +200,7 @@ class Loan
             } else {
                 //expired period
                 $days=$this->dates->F_datediff($transaction[date], $loan_data[dt]);
+                //echo "Days:$days $transaction[date] - $loan_data[dt]<br>";
                 if (($days<0)&&($bal>0)&&($expired==0)) {
                     $expired++;
                     $i++;
