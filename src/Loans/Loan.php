@@ -44,7 +44,7 @@ class Loan
         //$data['amount']=234000;
         //$data['period_rate']=0.035/12;
         //$data['payments']=240;
-        //echo $this->pre_display($data,'calc_pmt');
+        //echo $this->html->pre_display($data,'calc_pmt');
         //M = monthly mortgage payment
         //P = the principal, or the initial amount you borrowed.
         //r = your monthly interest rate. Your lender likely lists interest rates as an annual figure, so you’ll need to divide by 12, for each month of the year. So, if your rate is 5%, then the monthly rate will look like this: 0.05/12 = 0.004167.
@@ -69,13 +69,14 @@ class Loan
      */
     public function calcLoan($data)
     {
+        // Debug related code
         $GLOBALS[debug][stopwatch]='calc_loan';
         if ($GLOBALS[access][view_debug]) {
             $data[domain]=$GLOBALS[debug][stopwatch];
             $GLOBALS[debug][calc_loan][]=$data;
         }
 
-        //echo $this->pre_display($data,'data'); //exit;
+        //echo $this->html->pre_display($data,'data'); //exit;
         $totals=array_fill(0, 19, 0);
         $expired=0;
         if ($data[loan_data][base]=='365') {
@@ -115,7 +116,7 @@ class Loan
 
 
         $transactions=$res[transactions];
-        $bal=$transactions[0][given];
+        //$bal=$transactions[0][given];
         $notes=$transactions[0][descr];
         $last_intpaid=$transactions[0][date];
 
@@ -123,7 +124,12 @@ class Loan
         $tbl=$this->html->tablehead($what, $qry, $order, $addbutton, $fields, $sort);
         //transactions
         $GLOBALS[debug][stopwatch]='calc_loan_main';
+
+        // Transactions loop
         foreach ($transactions as $transaction) {
+            $days=$this->dates->F_datediff($transaction[date], $loan_data['date']);
+            //echo "TR: days:$days ($loan_data[date] - $transaction[date])<br>";
+            if($days<0) continue;
             $type='';
             $i++;
             $descr='';
@@ -159,13 +165,15 @@ class Loan
             $totals[5]+=$transaction[adjustment];
 
 
-            //echo "$i. $transaction[date] $descr B:$bal";
+            //echo "$i. $transaction[date] $descr B:$bal<br>";
+            //First transdaction is special
             if ($i==1) {
                 //first transaction
                 $amount=$transaction[given]-$transaction[returned];
                 $loan[dt]=$transaction[date];
                 $amount1=$amount;
-                //echo $this->pre_display($loan, "$i $loan[dt] $descr");
+                $bal=$transaction[given];
+                //echo $this->html->pre_display($loan, "$i $loan[dt] $descr");
                 $tbl.="<tr class='$class'><td>$i</td>
                 <td>$descr</td>
                 <td>$loan[dt]</td>
@@ -196,12 +204,12 @@ class Loan
                     't_interest'=>$t_interest_paid,
                     't_paid'=>$t_interest_paid+$t_principal_paid,
                     'info'=>$notes,
-                    );
-            } else {
-                //expired period
+                );
+            } else { // Rest of transactions
+                //check if transaction was after the loan expiration
                 $days=$this->dates->F_datediff($transaction[date], $loan_data[dt]);
-                //echo "Days:$days $transaction[date] - $loan_data[dt]<br>";
-                if (($days<0)&&($bal>0)&&($expired==0)) {
+                //echo "Expiration Days:$days $transaction[date] - $loan_data[dt]<br>";
+                if (($days<0)&&($bal>0)&&($expired==0)) { // Transaction was after expiration of the loan
                     $expired++;
                     $i++;
                     $rate=$loan_data[p_rate];
@@ -218,9 +226,10 @@ class Loan
                         'compound'=>$loan_data[compound],
                         'note'=>'Calc Loan. Expired',
                     );
-                    $descr="Expired" ;
+                    $descr="Expired1" ;
 
                     $loan=$this->getInterest($data);
+
 
                     if ($loan_data[compound]=='f') {
                         //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
@@ -229,12 +238,13 @@ class Loan
                         $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]-$transaction[adjustment]), 2);
                         //$int_bal=$loan[interest];
                     }
+                    // echo $this->html->cols2($this->html->pre_display($data,"$loan_data[date] data EXP1"),$this->html->pre_display($loan,"loan EXP1 $int_bal"));
 
                     //$bal=round(($bal+$loan[interest]),2);
 
 
                     $totals[7]+=$loan[interest];
-                    //echo $this->pre_display($loan, "$i $dt $descr");
+                    //echo $this->html->pre_display($loan, "$i $dt $descr");
                     $tbl.="<tr class='$class'><td>$i</td>
                     <td>$descr</td>
                     <td>$dt</td>
@@ -243,7 +253,7 @@ class Loan
                     <td class='n'>".$this->html->money(0)."</td>
                     <td class='n'>".$this->html->money(0)."</td>
                     <td class='n'>".$this->html->money($bal)."</td>
-                    <td class='n'>".$this->html->money($loan[interest])."</td>
+                    <td class='n'>".$this->html->money($int_bal)."</td>
                     <td class='n'>".$this->html->money($rate*100)." %</td>
                     <td class='n'>$loan[days]</td>
                     <td>Expired period</td>
@@ -265,38 +275,46 @@ class Loan
                         't_interest'=>$t_interest_paid,
                         't_paid'=>$t_interest_paid+$t_principal_paid,
                         'info'=>'Expired period',
-                        );
-                }
-                if ($transaction[given]>0) {
-                    $descr='Give';
-                    $type='GIV';
-                }
-                if ($transaction[returned]>0) {
-                    $descr='Return';
-                    $type='RET';
-                }
-                if ($transaction[paid]>0) {
-                    $descr='Pay';
-                    $last_intpaid=$transaction[date];
-                    $type='INT';
-                }
-                if ($transaction[adjustment]!=0) {
-                    $descr='Interest Adjustment';
-                    $last_intpaid=$transaction[date];
-                    $type='ADJ';
-                }
-                if (($transaction[given]==0)&&($transaction[returned]==0)&&($transaction[paid]==0)&&($transaction[adjustment]==0)) {
-                    $type='ADD';
-                    $descr='Addendum';
-                    //$rate=$transaction[rate];
-                    $freq=$transaction[freq];
-                    $days_allowed=$daysinyear/$freq;
-                }
-                //rest transactions
+                    );
+                    $expired_interest=$loan[interest];
+                } // end of loan expiration block
+
+                //***
+                //Repeted code
+                //***
+                // if ($transaction[given]>0) {
+                //     $descr='Give';
+                //     $type='GIV';
+                //     $bal=;
+                // }
+                // if ($transaction[returned]>0) {
+                //     $descr='Return';
+                //     $type='RET';
+                // }
+                // if ($transaction[paid]>0) {
+                //     $descr='Pay';
+                //     $last_intpaid=$transaction[date];
+                //     $type='INT';
+                // }
+                // if ($transaction[adjustment]!=0) {
+                //     $descr='Interest Adjustment';
+                //     $last_intpaid=$transaction[date];
+                //     $type='ADJ';
+                // }
+                // if (($transaction[given]==0)&&($transaction[returned]==0)&&($transaction[paid]==0)&&($transaction[adjustment]==0)) {
+                //     $type='ADD';
+                //     $descr='Addendum';
+                //     //$rate=$transaction[rate];
+                //     $freq=$transaction[freq];
+                //     $days_allowed=$daysinyear/$freq;
+                // }
+
+
                 $df=$loan[dt];
                 $dt=$transaction[date];
                 $days=$this->dates->F_datediff($df, $loan_data[dt]);
                 $notes=$transaction[descr];
+                // Check for penalties
                 if (($days<0)&&($bal*.9>0)) {
                     $rate=$loan_data[p_rate];
                     $class='roze';
@@ -312,9 +330,11 @@ class Loan
                     'compound'=>$loan_data[compound],
                     'note'=>'Calc Loan. Rest Transactions',
                 );
-                //echo $this->pre_display($data,'data');
+                //echo $this->html->pre_display($data,'data');
                 $loan=$this->getInterest($data);
-                //echo $this->pre_display($loan,'loan'); exit;
+
+
+                //echo $this->html->pre_display($loan,'loan'); exit;
 
 
                 //$notes="<span class='badge info'>".$this->html->money($int_bal)." + ".$this->html->money($loan[interest])."</span> $notes";
@@ -326,7 +346,7 @@ class Loan
                     $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]-$transaction[adjustment]), 2);
                     $int_bal=$loan[interest];
                 }
-
+                // echo $this->html->cols2($this->html->pre_display($data,"$loan_data[date] data REST"),$this->html->pre_display($loan,"loan REST $int_bal"));
 
                 if ($bal>$max_amount*1.2) {
                     $class='red';
@@ -343,7 +363,7 @@ class Loan
                 if (($days_notpaid>$days_allowed)&&($bal>0)&&($i_periods>0)) {
                     $res[err].="$dt Failed to pay interest for $i_periods periods $last_intpaid - $dt (Bal:".round($loan[interest], 2).").<br>";
                 }
-                //echo $this->pre_display($loan, "$i $dt $descr");
+                //echo $this->html->pre_display($loan, "$i $dt $descr");
                 $tbl.="<tr class='$class'><td>$i</td>
                 <td>$descr</td>
                 <td>$dt</td>
@@ -374,7 +394,7 @@ class Loan
                     't_interest'=>$t_interest_paid,
                     't_paid'=>$t_interest_paid+$t_principal_paid,
                     'info'=>$notes,
-                    );
+                );
 
                 if ($type=='ADD') {
                     $rate=$transaction[rate];
@@ -382,11 +402,12 @@ class Loan
             }
             $totals[7]+=$loan[interest];
             //echo ", B2:$bal, days:$days<br>";
-        }
+        } // End transactions loop
 
-        //expired period
+        // expired period
         $days=$this->dates->F_datediff($date, $loan_data[dt]);
         if (($days<0)&&($bal>0)&&($expired==0)) {
+            $expired++;
             $i++;
             $rate=$loan_data[p_rate];
             $class='red';
@@ -402,19 +423,21 @@ class Loan
                 'compound'=>$loan_data[compound],
                 'note'=>'Calc Loan. Expired Period',
             );
-            $descr="Expired" ;
+            $descr="Expired2" ;
             $loan=$this->getInterest($data);
+
 
             if ($loan_data[compound]=='f') {
                 //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
-                $int_bal=$int_bal+$loan[interest]-$transaction[paid];
+                $int_bal=$int_bal+$loan[interest];//-$transaction[paid];
             } else {
                 $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]), 2);
                 $int_bal=$loan[interest];
             }
+            // echo $this->html->cols2($this->html->pre_display($data,"$loan_data[date] data EXP2"),$this->html->pre_display($loan,"loan EXP2 $int_bal"));
 
             $totals[7]+=$loan[interest];
-            //echo $this->pre_display($data, "DATA: $i $dt $descr"); echo $this->pre_display($loan, "RES: $i $dt $descr");
+            //echo $this->html->pre_display($data, "DATA: $i $dt $descr"); echo $this->html->pre_display($loan, "RES: $i $dt $descr");
             $tbl.="<tr class='$class'><td>$i</td>
             <td>$descr</td>
             <td>$dt</td>
@@ -423,7 +446,7 @@ class Loan
             <td class='n'>".$this->html->money(0)."</td>
             <td class='n'>".$this->html->money(0)."</td>
             <td class='n'>".$this->html->money($bal)."</td>
-            <td class='n'>".$this->html->money($loan[interest])."</td>
+            <td class='n'>".$this->html->money($int_bal)."</td>
             <td class='n'>".$this->html->money($rate*100)." %</td>
             <td class='n'>$loan[days]</td>
             <td>Expired period 2</td>
@@ -445,7 +468,8 @@ class Loan
                 't_interest'=>$t_interest_paid,
                 't_paid'=>$t_interest_paid+$t_principal_paid,
                 'info'=>'Expired period 2',
-                );
+            );
+            $expired_interest=$loan[interest];
         }
 
         //Up to now
@@ -471,7 +495,8 @@ class Loan
         );
 
         $loan=$this->getInterest($data);
-        //echo $this->pre_display($data, "DATA: $i $dt $descr"); echo $this->pre_display($loan, "RES: $i $dt $descr");
+
+        //echo $this->html->pre_display($data, "DATA: $i $dt $descr"); echo $this->html->pre_display($loan, "RES: $i $dt $descr");
 
         if ($loan_data[compound]=='f') {
             //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
@@ -480,6 +505,7 @@ class Loan
             //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]),2);
             $int_bal=$loan[interest];
         }
+        // echo $this->html->cols2($this->html->pre_display($data,"$loan_data[date] data NOW"),$this->html->pre_display($loan,"loan NOW $int_bal"));
 
 
         if (($days<=0)&&($bal*.9>0)) {
@@ -500,9 +526,9 @@ class Loan
             $class='red';
         }
         //$totals[7]+=$loan[interest]+$totals[5];
-        $totals[7]=$int_bal;
+        $totals[7]=$int_bal;//+$expired_interest;
         $totals[0]=$bal+$totals[7];
-        //echo $this->pre_display($loan, "$i $dt $descr");
+        //echo $this->html->pre_display($loan, "$i $dt $descr");
         $tbl.="<tr class='$class'><td>$i</td>
         <td>$descr</td>
         <td>$dt</td>
@@ -533,7 +559,7 @@ class Loan
             't_interest'=>$t_interest_paid,
             't_paid'=>$t_interest_paid+$t_principal_paid,
             'info'=>'Up to now',
-            );
+        );
         $totals[6]=$bal;
         //echo "$i. $transaction[date] $descr B:$bal<br>";
         $tbl.=$this->html->tablefoot($i, $totals, $i);
@@ -543,7 +569,7 @@ class Loan
         $res[given]=$totals[2];
         $res[returned]=$totals[3];
         $res[returned_i]=$totals[4];
-        $res[interest]=round($totals[7], 2);
+        $res[interest]=round($totals[7], 2);//+$expired_interest;
         $res[interest_accrued]=round($res[interest]+$res[returned_i], 2);
         $res[balance]=round($totals[6], 2);
         $res[interest_predict]=round($whole_loan[interest]);
