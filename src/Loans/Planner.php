@@ -33,9 +33,9 @@ class Planner
     public function planLoan($data)
     {
         $GLOBALS[debug][stopwatch]='plan_loan';
-    //echo $this->pre_display($data,"f:plan_loan");
-    //$days_add=$this->dates->F_datediff($data[df],$data[dt]);
-    //echo "$days_add<br>";
+        //echo $this->html->pre_display($data,"f:plan_loan");
+        //$days_add=$this->dates->F_datediff($data[df],$data[dt]);
+        //echo "$days_add<br>";
         $res=$data;
         if ($data[base]=='365') {
             $daysinyear=365;
@@ -66,8 +66,8 @@ class Planner
         $data[months_loan]=$months_loan;
         $months_loan_rounded=round($months_loan);
         $data[months_loan_rounded]=$months_loan_rounded;
-    //echo $this->pre_display($data,"F:plan_loan");
-    //echo "D:$payment_range<br>";
+        //echo $this->html->pre_display($data,"F:plan_loan");
+        //echo "D:$payment_range<br>";
         $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Ineterest','rate','days','');
         $tbl=$this->html->tablehead($what, $qry, $order, $addbutton, $fields, $sort);
         $i=0;
@@ -156,7 +156,7 @@ class Planner
             $days_chk=$this->dates->F_datediff($date, $data['date']);
     
             $notes='';
-            //$notes=$this->pre_display($calc_interest);
+            //$notes=$this->html->pre_display($calc_interest);
             if (($days_chk<=0)&&($found==0)) {
                 $found=1;
                 $res[balance]=$balance_prev;
@@ -166,7 +166,7 @@ class Planner
                 $res[t_principal_paid]=$t_principal_paid;
                 $res[next_payment]=$date;
                 $res[days_till_next]=-$days_chk;
-                //$info=$this->pre_display($res);
+                //$info=$this->html->pre_display($res);
                 //$notes="<span class='badge red'>DATE $data[date]</span> $info";
             }
             $t_paid+=$pmt;
@@ -211,13 +211,13 @@ class Planner
         } else {
             $months=12;
         }
-    //echo "pays_per_year=$pays_per_year / $months_loan ($months)<br>";
+        //echo "pays_per_year=$pays_per_year / $months_loan ($months)<br>";
         for ($i=1; $i<=$periods; $i++) {
             $no++;
             $date_prev=$date;
             if ($months>1) {
                 //echo "$months / $days_loan<br>";
-                if ($pays_per_year>1) {
+                if ($pays_per_year>=1) {
                     $date=$this->dates->F_dateadd_month($date, $months);
                 } else {
                     $date=$this->dates->F_dateadd($date, $days_loan);
@@ -230,7 +230,7 @@ class Planner
                 if (($days_add>0)&&($i==$periods)) {
                     $date=$this->dates->F_dateadd($date, -$days_add);
                 }
-                //if($no>=5)echo $this->pre_display(['Date'=>$date,'Days_add'=>$days_add],"result4");
+                //if($no>=5)echo $this->html->pre_display(['Date'=>$date,'Days_add'=>$days_add],"result4");
             } else {
                 $days_in_month=$this->dates->days_in_month_date($this->dates->F_dateadd($date, 15));
                 if (($days_add>0)&&($i==$periods)) {
@@ -243,7 +243,7 @@ class Planner
             $days_chk=$this->dates->F_datediff($date, $data['date']);
     
             $notes='';
-            //$notes=$this->pre_display($calc_interest);
+            //$notes=$this->html->pre_display($calc_interest);
             if (($days_chk<=0)&&($found==0)) {
                 $data4interest=array(
                 'amount'=>$balance,
@@ -266,7 +266,7 @@ class Planner
                 $res[t_principal_paid]=$t_principal_paid;
                 $res[next_payment]=$date;
                 $res[days_till_next]=-$days_chk;
-                //$info=$this->pre_display($res);
+                //$info=$this->html->pre_display($res);
                 $info.="<table>
 		<tr><td>Balance:</td><td class='n'>".$this->html->money($res[balance])."</td></tr>
 		<tr><td>Interest:</td><td class='n'>".$this->html->money($res[interest])."</td></tr>
