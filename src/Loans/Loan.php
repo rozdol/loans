@@ -360,7 +360,7 @@ class Loan
                 }
                 $days_notpaid=$this->dates->F_datediff($last_intpaid, $dt, $base);
                 $i_periods=floor($days_notpaid/$days_allowed);
-                if (($days_notpaid>$days_allowed)&&($bal>0)&&($i_periods>0)) {
+                if (($days_notpaid>$days_allowed)&&($bal>0)&&($i_periods>0)&&($loan[interest]>0)) {
                     $res[err].="$dt Failed to pay interest for $i_periods periods $last_intpaid - $dt (Bal:".round($loan[interest], 2).").<br>";
                 }
                 //echo $this->html->pre_display($loan, "$i $dt $descr");
