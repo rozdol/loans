@@ -51,9 +51,11 @@ class Planner
         }
         $payments=$data['payments'];
         $payment_range=round($periods/$payments);
+
         if (($payment_range==0)||($payment_range==INF)) {
             $payment_range=1;
         }
+        //echo $this->html->pre_display($payment_range,"payment_range");
         $days_loan=$this->dates->F_datediff($data[df], $data[dt], $data[base]);
         $data[days_loan]=$days_loan;
         $months_loan=$days_loan/365*12;
@@ -74,7 +76,7 @@ class Planner
         $no=1;
         $date=$data[df];
         $pmt_amount=$data[pmt];
-        if ($payment_range>1) {
+        if (($payment_range>=1)&&($pmt_amount==0)&&($payments>0)) {
             $pmt_amount=round($data[amount]/$payments, 2);
         }
         $pmt=0;
