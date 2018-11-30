@@ -50,6 +50,7 @@ class Loan
         //r = your monthly interest rate. Your lender likely lists interest rates as an annual figure, so you’ll need to divide by 12, for each month of the year. So, if your rate is 5%, then the monthly rate will look like this: 0.05/12 = 0.004167.
         //n = the number of payments, or the payment period in months. If you take out a 30-year fixed rate mortgage, this means: n = 30 years x 12 months per year, or 360 payments.
 
+        //echo $this->html->pre_display($data,"result");
         $p=$data['amount'];
         $r=$data['period_rate'];
         $n=$data['payments'];
@@ -58,9 +59,9 @@ class Loan
 
         $m1=$r*(pow((1+$r), $n));
         $m2=pow((1+$r), $n)-1;
-        $m=$p*($m1/$m2);
-
-        return $m;
+        if($m2!=0)$m=$p*($m1/$m2);
+        //echo $this->html->pre_display(['m1'=>$m1, 'm2'=>$m2, 'm'=>$m],"calcPmt");
+        return $m*1;
     }
     /**
      * calc Loan
