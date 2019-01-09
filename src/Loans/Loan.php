@@ -234,10 +234,10 @@ class Loan
 
                     if ($loan_data[compound]=='f') {
                         //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
-                        $int_bal=$int_bal+$loan[interest]-$transaction[paid]-$transaction[adjustment];
+                        $int_bal=$int_bal+$loan[interest];//-$transaction[paid];
                     } else {
-                        $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]-$transaction[adjustment]), 2);
-                        //$int_bal=$loan[interest];
+                        $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]), 2);
+                        $int_bal=$loan[interest];
                     }
                     // echo $this->html->cols2($this->html->pre_display($data,"$loan_data[date] data EXP1"),$this->html->pre_display($loan,"loan EXP1 $int_bal"));
 
