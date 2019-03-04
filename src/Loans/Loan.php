@@ -574,12 +574,12 @@ class Loan
         $res[interest_accrued]=round($res[interest]+$res[returned_i], 2);
         $res[balance]=round($totals[6], 2);
         $res[interest_predict]=round($whole_loan[interest]);
-        $res[completion]=round((($res[given]+$res[returned]+$res[returned_i]))/(($whole_loan[amount]*2+$res[interest])), 2);
+        $res[completion]=round((($res[given]+$res[returned]+$res[returned_i]))/(($whole_loan[amount]*2+$res[interest_accrued])), 2);
         $res[completion_prc]=$res[completion]*100;
         $res[progress]=$this->html->draw_progress($res[completion_prc]);
 
         $res[completion1]=round(($res[given])/($whole_loan[amount]), 2)*100;
-        $res[completion2]=round((($res[returned]+$res[returned_i]))/(($res[given]+$res[interest])), 2)*100;
+        $res[completion2]=round((($res[returned]+$res[returned_i]))/(($res[given]+$res[interest_accrued])), 2)*100;
         $res[progress2]=$this->html->draw_progress($res[completion1]).$this->html->draw_progress($res[completion2]);
 
         $out.= "<table class='table table-morecondensed table-notfull'>";
