@@ -335,7 +335,7 @@ class Loan
                 $loan=$this->getInterest($data);
 
 
-                //echo $this->html->pre_display($loan,'loan'); exit;
+                //echo $this->html->cols2($this->html->pre_display($data,'data'),$this->html->pre_display($loan,'loan')); //exit;
 
 
                 //$notes="<span class='badge info'>".$this->html->money($int_bal)." + ".$this->html->money($loan[interest])."</span> $notes";
