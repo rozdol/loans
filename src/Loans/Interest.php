@@ -36,15 +36,13 @@ class Interest
         */
         $df=$data[df];
         $dt=$data[dt];
-        //echo $this->pre_display($data,'data'); //exit;
-        if ($data[base]=='365') {
-            $daysinyear=$this->dates->F_daysinyear($res[df]);
-        } else {
-            $daysinyear=360;
-        }
+        //echo \util::pre_display($data,' data from interest'); //exit;
+
+        $daysinyear=($data[base]=='365')?$this->dates->F_daysinyear($res[df]):360;
         if ($data[base]=='') {
             $data[base]='30/360';
         }
+        $data[daysinyear]=$daysinyear;
         $res=$data;
         $res[days]=$this->dates->F_datediff($res[df], $res[dt], $res[base]);
         $res[years]=$res[days]/$daysinyear;
@@ -57,7 +55,8 @@ class Interest
             }
             //Calc 1st interest
             $days=$this->dates->F_datediff($res[df], $res[dt1]);
-            $daysinyear=$this->dates->F_daysinyear($res[dt1]);
+            //$daysinyear=$this->dates->F_daysinyear($res[dt1]);
+            $daysinyear=($data[base]=='365')?$this->dates->F_daysinyear($res[dt1]):360;
             $years=$days/$daysinyear;
             $int=$res[amount]*$res[rate]*$years;
             $res[interest]+=$int;
@@ -79,7 +78,8 @@ class Interest
                     $date=date('d.m.Y', $min_date);
                     $date_to=$this->dates->F_dateadd($this->dates->F_dateadd_year($date, 1), -1);
                     $date_from=$date;
-                    $daysinyear=$this->dates->F_daysinyear($date_to);
+                    //$daysinyear=$this->dates->F_daysinyear($date_to);
+                    $daysinyear=($data[base]=='365')?$this->dates->F_daysinyear($date_to):360;
                     if ($this->dates->is_earlier($res[dt], $date_to)) {
                         $date_to=$res[dt];
                     }

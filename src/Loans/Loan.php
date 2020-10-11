@@ -38,6 +38,14 @@ class Loan
     {
         return $this->planner->planLoan($data);
     }
+    public function getDates($data)
+    {
+        return $this->planner->getDates($data);
+    }
+    public function getPlan($data)
+    {
+        return $this->planner->getPlan($data);
+    }
     public function calcPmt($data)
     {
         //unset($data);
@@ -110,6 +118,9 @@ class Loan
             'dt'=>$loan_data[dt],
             'base'=>$loan_data[base],
             'compound'=>$loan_data[compound],
+            'interest_margin'=>$loan_data[interest_margin],
+            'maturity_id'=>$loan_data[maturity_id],
+            'source_id'=>$loan_data[source_id],
             'note'=>'Calc Loan. Initial',
         );
 
@@ -225,6 +236,9 @@ class Loan
                         'dt'=>$dt,
                         'base'=>$base,
                         'compound'=>$loan_data[compound],
+                        'interest_margin'=>$loan_data[interest_margin],
+                        'maturity_id'=>$loan_data[maturity_id],
+                        'source_id'=>$loan_data[source_id],
                         'note'=>'Calc Loan. Expired',
                     );
                     $descr="Expired1" ;
@@ -329,6 +343,9 @@ class Loan
                     'dt'=>$dt,
                     'base'=>$base,
                     'compound'=>$loan_data[compound],
+                    'interest_margin'=>$loan_data[interest_margin],
+                    'maturity_id'=>$loan_data[maturity_id],
+                    'source_id'=>$loan_data[source_id],
                     'note'=>'Calc Loan. Rest Transactions',
                 );
                 //echo $this->html->pre_display($data,'data');
@@ -422,6 +439,9 @@ class Loan
                 'dt'=>$dt,
                 'base'=>$base,
                 'compound'=>$loan_data[compound],
+                'interest_margin'=>$loan_data[interest_margin],
+                'maturity_id'=>$loan_data[maturity_id],
+                'source_id'=>$loan_data[source_id],
                 'note'=>'Calc Loan. Expired Period',
             );
             $descr="Expired2" ;
@@ -492,6 +512,9 @@ class Loan
             'dt'=>$dt,
             'base'=>$base,
             'compound'=>$loan_data[compound],
+            'interest_margin'=>$loan_data[interest_margin],
+            'maturity_id'=>$loan_data[maturity_id],
+            'source_id'=>$loan_data[source_id],
             'note'=>'Calc Loan. Up to Now',
         );
 

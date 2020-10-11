@@ -30,6 +30,419 @@ class Planner
      *
      * @return array
      */
+    public function getDates($data)
+    {
+        $found=0;
+        $periods=$data['periods'];
+        $ignore_weekends=$data['ignore_weekends'];
+        $use_eoy=$data['use_eoy'];
+
+        if ($periods==0) {
+            $periods=1;
+        }
+
+
+        if ($data['align']>0) $periods++;
+        $data['periods']=$periods;
+        $payments=$data['payments'];
+        $payment_range=round($periods/$payments);
+        //echo "payment_range1=$payment_range=round($periods/$payments);<br>";
+
+        if (($payment_range==0)||($payment_range==INF)) {
+            $payment_range=1;
+        }
+        $data[payment_range]=$payment_range;
+        //echo $this->html->pre_display($payment_range,"payment_range");
+        $days_loan=$this->dates->F_datediff($data[df], $data[dt], $data[base]);
+        $data[days_loan]=$days_loan;
+        $months_loan=$days_loan/365*12;
+        $pays_per_year=$data[freq];
+
+        if (($days_loan>366)&&($data[freq]==1)&&($data[periods]==1)) {
+            $pays_per_year=365/$days_loan;
+        }
+        $data[pays_per_year]=$pays_per_year;
+        $data[months_loan]=$months_loan;
+        $months_loan_rounded=round($months_loan);
+        $data[months_loan_rounded]=$months_loan_rounded;
+        $item_no=0;
+        $no=1;
+        $date=$data[df];
+        $date_initial=$data[df];
+        $date_prev=$date;
+
+        //Check for date_check
+        $data['date']=$this->dates->F_date($data['date'],1);
+        $days_chk=$this->dates->F_datediff($data['date'], $date_initial);
+        //echo $this->html->pre_display($days_chk,"days_chk");
+        if (($days_chk<=0)&&($found==0)) {
+            $found=1;
+            $period_data_chk=[
+                'no'=>$item_no,
+                'df'=>$date_prev,
+                'dt'=>$data['date'],
+                'days'=>$this->dates->F_datediff($date_prev, $data['date'], $data[base]),
+                't_days'=>$this->dates->F_datediff($date_initial, $data['date'], $data[base]),
+                'note'=>'chk',
+            ];
+            //$period_data_arr[$item_no]=$period_data;
+        }
+
+        if ($data['align']>0) {
+            $no++;
+            $date_prev=$date;
+
+            if ($data['align']<32) {
+                //echo "$data[align] ($date)<br>";
+                $day=substr($date, 0, 2);
+                    //echo "$day<br>";
+                if ($data['align']>=$day) {
+                    $days_add=$data['align']-$day;
+                } else {
+                    $days_add=$data['align']-$day + $this->days_in_month($date);
+                }
+                $align_text="$data[align] day of the month";
+            } else {
+                $days_add=$this->dates->F_datediff($date, $this->dates->lastday_in_month($date));
+                $align_text="the last day of the month";
+            }
+            $date=$this->dates->F_dateadd_day($date, $days_add,$ignore_weekends);
+
+            $item_no++;
+            $period_data=[
+                'no'=>$item_no,
+                'df'=>$date_prev,
+                'dt'=>$date,
+                'days'=>$this->dates->F_datediff($date_prev, $date, $data[base]),
+                't_days'=>$this->dates->F_datediff($date_initial, $date, $data[base]),
+                'note'=>'align',
+            ];
+            $period_data_arr[$item_no]=$period_data;
+
+            $days=$this->dates->F_datediff($date_prev, $date, $data[base]);
+
+            $t_days+=$days;
+            $plan[]=array(
+            'no'=>$no,
+            'action'=>'Pay',
+            'date'=>$date,
+            'days'=>$days,
+            'info'=>'',
+                );
+        }
+        /// END ========  Align to date
+
+
+        $date_alligned=$date;
+
+        if ($pays_per_year>1) {
+            $months=12/$pays_per_year;
+        } else {
+            $months=12;
+        }
+        $data[months]=$months;
+        /// ========  Loop for periods
+        for ($i=1; $i<=$periods; $i++) {
+            $no++;
+            $date_prev=$date;
+            if ($months>=1) {
+                //echo "$months / $days_loan<br>";
+                if ($pays_per_year>=1) {
+                    $date_before=$date;
+                    $date=$this->dates->F_dateadd_month($date_alligned, $months*$i,$ignore_weekends);
+                    //echo $this->html->pre_display($pays_per_year,"$date_before - $date pays_per_year $months ($days_add)");
+                } else {
+                    $date=$this->dates->F_dateadd($date, $days_loan);
+                    //echo "DL:$days_loan<br>";
+                }
+
+                if (($days_add>0)&&($data['align']==32)) {
+                    $date=$this->dates->lastday_in_month($this->dates->F_dateadd($date, -15));
+                }
+                if (($days_add>0)&&($i==$periods)) {
+                    $date=$this->dates->F_dateadd($date, -$days_add);
+                }
+                //if($no>=5)echo $this->html->pre_display(['Date'=>$date,'Days_add'=>$days_add],"result4");
+            } else {
+                $days_in_month=$this->dates->days_in_month_date($this->dates->F_dateadd($date, 15));
+                if (($days_add>0)&&($i==$periods)) {
+                    $days_in_month=$days_in_month-$days_add;
+                }
+                $date=$this->dates->F_dateadd($date, $days_in_month);
+                //$date=$this->dates->F_dateadd_month($date,$months);
+            }
+
+
+
+            $item_no++;
+            $period_data=[
+                'no'=>$item_no,
+                'df'=>$date_prev,
+                'dt'=>$date,
+                'days'=>$this->dates->F_datediff($date_prev, $date, $data[base]),
+                't_days'=>$this->dates->F_datediff($date_initial, $date, $data[base]),
+                'note'=>'maturity',
+            ];
+            $period_data_arr[$item_no]=$period_data;
+
+            $days=$this->dates->F_datediff($date_prev, $date, $data[base]);
+
+            $t_days+=$days;
+        }
+
+        /// END ========  Loop for periods
+        $item_no=0;
+        $inserted=0;
+
+        $item_no++;
+        $period_data_loan=[
+            'no'=>$item_no,
+            'df'=>$date_initial,
+            'dt'=>$date_initial,
+            'days'=>0,
+            't_days'=>0,
+            'note'=>'loan'
+        ];
+        $period_data_arr2[$item_no]=$period_data_loan;
+
+        $periods=0;
+        /// ============  Loop for chk and eoy dates
+        foreach ($period_data_arr as $key => $period_data) {
+            // check for chk date
+            if(($this->dates->is_earlier($period_data_chk[dt],$period_data[dt],1))&&($inserted==0)){
+                $inserted=1;
+                $item_no++;
+                $period_data_chk['no']=$item_no;
+                $period_data_arr2[$item_no]=$period_data_chk;
+            }
+            if($use_eoy>0){
+                // check for eoy date
+                $year=$this->dates->F_extractyear($period_data[df])+1;
+                $eoy="01.01.$year";
+                //echo $this->html->pre_display($eoy,"eoy");
+                if(($this->dates->is_earlier($eoy,$period_data[dt],1))&&($this->dates->is_later($eoy,$period_data[df],1))){
+                    $item_no++;
+                    $period_data_ny=[
+                        'no'=>$item_no,
+                        'df'=>$period_data[df],
+                        'dt'=>$eoy,
+                        'days'=>$this->dates->F_datediff($period_data[df], $eoy, $data[base]),
+                        't_days'=>$this->dates->F_datediff($date_initial, $eoy, $data[base]),
+                        'note'=>'eoy'
+                    ];
+                    $period_data_arr2[$item_no]=$period_data_ny;
+                    $period_data[df]=$eoy;
+                    $period_data['days']=$this->dates->F_datediff($eoy, $period_data[dt], $data[base]);
+                    $period_data['note']='align';
+                }
+            }
+
+            $item_no++;
+            $periods++;
+            $period_data['no']=$item_no;
+            $period_data_arr2[$item_no]=$period_data;
+            $date_prev=$period_data[dt];
+
+        }
+        //insert chk date at the end
+        if($inserted==0){
+            $inserted=1;
+            $item_no++;
+            $period_data_chk['no']=$item_no;
+            $period_data_arr2[$item_no]=$period_data_chk;
+        }
+        $data['periods']=$periods;
+        $res=$data;
+        $res[period_data]=$period_data_arr2;
+        return $res;
+    }
+
+
+    public function getPlan($data)
+    {
+        //echo $this->html->pre_display($data,"f:getPlan");
+        $period_data_arr=$data[period_data];
+        $payment_range=$data[payment_range];
+        $balance=$data[amount];
+        $pmt_amount=$data[pmt];
+        $payments=$data['payments'];
+        $periods=$data['periods'];
+
+        $payments=$data['payments'];
+        $payment_range=round($periods/$payments);
+        //echo "payment_range=$payment_range=round($periods/$payments)<br>";
+
+        if (($payment_range==0)||($payment_range==INF)) {
+            $payment_range=1;
+        }
+        //echo "pmt_amount=$pmt_amount=round($data[amount]/$payments, 2)<br>";
+        if (($payment_range>=1)&&($pmt_amount==0)&&($payments>0)) {
+            $pmt_amount=round($data[amount]/$payments, 2);
+        }
+
+        //echo $this->html->pre_display($payment_range,"payment_range");
+        $days_loan=$this->dates->F_datediff($data[df], $data[dt], $data[base]);
+        $data[days_loan]=$days_loan;
+        $months_loan=$days_loan/365*12;
+        $pays_per_year=$data[freq];
+
+        if (($days_loan>366)&&($data[freq]==1)&&($data[periods]==1)) {
+            $pays_per_year=365/$days_loan;
+        }
+        $data[pays_per_year]=$pays_per_year;
+        $data[months_loan]=$months_loan;
+        $months_loan_rounded=round($months_loan);
+        $data[months_loan_rounded]=$months_loan_rounded;
+        if($data[maturity_id]>0){
+            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Ineterest','rate','days','default int.','ibor+margin int.','ibor rate','ibor date','');
+            }else{
+                $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Ineterest','rate','days','');
+            }
+        $tbl=$this->html->tablehead($what, $qry, $order, $addbutton, $fields, 'no_sort');
+        foreach ($period_data_arr as $key => $period_data) {
+            $i++;
+            //echo "$period_data[df] $period_data[dt] $period_data[note]<br>";
+            $date=$period_data[dt];
+            $given=($period_data[note]=='loan')?$data[amount]:0;
+            $data4interest=[
+                'amount'=>$balance,
+                'rate'=>$period_data['rate'],
+                'freq'=>$data['freq'],
+                'df'=>$period_data[df],
+                'dt'=>$period_data[dt],
+                'base'=>$data[base],
+                'compound'=>$data[compound],
+                'note'=>$period_data[note],
+            ];
+            $calc_interest=$this->interest->getInterest($data4interest);
+            //echo $this->html->pre_display($calc_interest,"calc_interest");
+            $interest=$calc_interest[interest];
+
+            $data4interest[rate]=$period_data['libor_rate']+$period_data['interest_margin'];
+            $calc_interest=$this->interest->getInterest($data4interest);
+            $libor_interest=$calc_interest[interest];
+
+            $data4interest[rate]=$period_data['default_rate'];
+            $calc_interest=$this->interest->getInterest($data4interest);
+            $default_interest=$calc_interest[interest];
+
+            if(!($data[int_paid_last]>0))$interest_paid=$interest;
+            if(($period_data[note]!='chk')&&($period_data[note]!='loan')){
+
+                if($period_data[note]!='loan'){
+                    $no++;
+                    $no_str=$no;
+                }else{
+                    $no_str='';
+                }
+
+                $pmt=(($no%$payment_range)==0)?$pmt_amount:0;
+                //echo "I.$no=".($no%$payment_range)." ($pmt)($pmt_amount)($payment_range)<br>";
+                if (($pmt==0)&&($no==$periods)) {
+                    $pmt=$balance+$interest;
+                }
+                if ($pmt>0) {
+                    $amount=$pmt-$interest;
+                    $interest_paid=$interest;
+                    if(($data[int_paid_last]>0))$interest_paid=$interest+$t_interest;
+                } else {
+                    $amount=0;
+                }
+                if (($payment_range>1)&&($pmt>0)) {
+                    $amount=$pmt;
+                }
+                $balance_prev=$balance;
+
+                if($data[compound]>0){
+                    $balance=$balance-$amount+$interest-$interest_paid;
+                }else{
+                    $balance=$balance-$amount;
+                }
+                $days=$period_data[days];//$this->dates->F_datediff($date_prev, $date, $data[base]);
+
+                $t_paid+=$pmt;
+                $t_interest_paid+=$interest_paid;
+                $t_interest+=$interest;
+
+                $t_principal_paid+=$amount;
+                $total=$amount+$interest;
+                $t_total_paid+=$total;
+                $t_days+=$days;
+
+                $t_default_interest+=$default_interest;
+                $t_libor_interest+=$libor_interest;
+                //$t_margin_interest+=$margin_interest;
+
+            }else{
+                $total=0;
+                $amount=0;
+                $interest=0;
+                $no_str='';
+                $interest_paid=0;
+            }
+
+            $tbl.="<tr class='$class'><td>$no_str</td>
+            <td>$period_data[note]</td>
+            <td>$date</td>
+            <td class='n'>".$this->html->money($given)."</td>
+            <td class='n'>".$this->html->money($total)."</td>
+            <td class='n'>".$this->html->money($amount)."</td>
+            <td class='n'>".$this->html->money($interest_paid)."</td>
+            <td class='n'>".$this->html->money($balance)."</td>
+            <td class='n'>".$this->html->money($interest)."</td>
+            <td class='n'>".$this->html->money($period_data['rate']*100,'','',5)." %</td>
+            <td class='n'>$days</td>
+            <td class='n'>".$this->html->money($default_interest)."</td>
+            <td class='n'>".$this->html->money($libor_interest)."</td>
+            <td class='n'>".$this->html->money($period_data['libor_rate']*100,'','',5)." %</td>
+            <td>$period_data[libor_date]</td>
+            <td>$note</td>
+            </tr>";
+            $plan[]=[
+                'no'=>$no_str,
+                'action'=>$period_data[note],
+                'date'=>$date,
+                'df'=>$period_data[df],
+                'dt'=>$period_data[dt],
+                'given'=>$given,
+                'returned'=>$amount,
+                'int_paid'=>$interest_paid,
+                'balance'=>$balance,
+                'interest'=>$interest,
+                'rate'=>$period_data['rate'],
+                'days'=>$days,
+                'default_interest'=>$default_interest,
+                'libor_interest'->$libor_interest,
+                'libor_rate'=>$period_data['libor_rate'],
+                'libor_date'=>$period_data[libor_date],
+                't_given'=>$data[amount],
+                't_returned'=>$t_principal_paid,
+                't_interest'=>$t_interest_paid,
+                't_paid'=>$t_interest_paid+$t_principal_paid,
+                'info'=>'',
+                ];
+        }
+        $totals=array_fill(0, 20, 0);
+        $totals[2]=$data[amount];
+        $totals[3]=$t_total_paid;
+        $totals[4]=$t_principal_paid;
+        $totals[5]=$t_interest_paid;
+        $totals[7]=$t_interest;
+        //$totals[6]=$balance;
+        $totals[9]=$t_days;
+        $totals[10]=$t_default_interest;
+        $totals[11]=$t_libor_interest;
+        //$totals[12]=$t_margin_interest;
+        $tbl.=$this->html->tablefoot($i, $totals, $no);
+
+        $res=$data;
+        $res[period_data]=$period_data_arr2;
+        $res[tbl]=$tbl;
+        $res[plan]=$plan;
+        return $res;
+    }
+
+
     public function planLoan($data)
     {
         $GLOBALS[debug][stopwatch]='plan_loan';
@@ -49,8 +462,10 @@ class Planner
         if ($periods==0) {
             $periods=1;
         }
+        if ($data['align']>0) $periods++;
         $payments=$data['payments'];
         $payment_range=round($periods/$payments);
+        //echo "payment_range=$payment_range=round($periods/$payments)<br>";
 
         if (($payment_range==0)||($payment_range==INF)) {
             $payment_range=1;
@@ -82,18 +497,18 @@ class Planner
         $pmt=0;
         $balance=$data[amount];
         $tbl.="<tr class='$class'><td>$no</td>
-<td>Loan</td>
-<td>$date</td>
-<td class='n'>".$this->html->money($data[amount])."</td>
-<td class='n'>".$this->html->money(0)."</td>
-<td class='n'>".$this->html->money(0)."</td>
-<td class='n'>".$this->html->money(0)."</td>
-<td class='n'>".$this->html->money($balance)."</td>
-<td class='n'>".$this->html->money(0)."</td>
-<td class='n'>".$this->html->money($data['rate']*100)." %</td>
-<td class='n'>0</td>
-<td>$notes</td>
-</tr>";
+        <td>Loan</td>
+        <td>$date</td>
+        <td class='n'>".$this->html->money($data[amount])."</td>
+        <td class='n'>".$this->html->money(0)."</td>
+        <td class='n'>".$this->html->money(0)."</td>
+        <td class='n'>".$this->html->money(0)."</td>
+        <td class='n'>".$this->html->money($balance)."</td>
+        <td class='n'>".$this->html->money(0)."</td>
+        <td class='n'>".$this->html->money($data['rate']*100)." %</td>
+        <td class='n'>0</td>
+        <td>$notes</td>
+        </tr>";
         $found=0;
         if ($this->dates->is_earlier($data['date'], $data['df'])) {
             $found=1;
@@ -116,6 +531,10 @@ class Planner
         't_paid'=>0,
         'info'=>'',
         );
+        $ignore_weekends=($data['ignore_weekends']=='t')?1:0;
+        $date_initial=$date;
+
+        /// ========  Align to date
         if ($data['align']>0) {
             $no++;
             $date_prev=$date;
@@ -132,8 +551,7 @@ class Planner
                 $days_add=$this->dates->F_datediff($date, $this->dates->lastday_in_month($date));
                 $align_text="the last day of the month";
             }
-    
-            $date=$this->dates->F_dateadd($date, $days_add);
+            $date=$this->dates->F_dateadd_day($date, $days_add,$ignore_weekends);
             $data4interest=array(
             'amount'=>$balance,
             'rate'=>$data['rate'],
@@ -142,10 +560,14 @@ class Planner
             'dt'=>$date,
             'base'=>$data[base],
             'compound'=>$data[compound],
+            'interest_margin'=>$data[interest_margin],
+            'maturity_id'=>$data[maturity_id],
+            'source_id'=>$data[source_id],
             'note'=>'Plan Loan. Allign.',
             );
 
             $calc_interest=$this->interest->getInterest($data4interest);
+
             $interest=$calc_interest[interest];
             if ($pmt>0) {
                 $amount=$pmt-$interest;
@@ -177,18 +599,18 @@ class Planner
             $total=$amount+$interest;
             $t_days+=$days;
             $tbl.="<tr class='$class'><td>$no</td>
-	<td>Pay</td>
-	<td>$date</td>
-	<td class='n'>".$this->html->money(0)."</td>
-	<td class='n'>".$this->html->money($total)."</td>
-	<td class='n'>".$this->html->money($amount)."</td>
-	<td class='n'>".$this->html->money($interest)."</td>
-	<td class='n'>".$this->html->money($balance)."</td>
-	<td class='n'>".$this->html->money($interest)."</td>
-	<td class='n'>".$this->html->money($data['rate']*100)." %</td>
-	<td class='n'>$days</td>
-	<td>Aligned to $align_text $notes</td>
-	</tr>";
+        	<td>Pay</td>
+        	<td>$date</td>
+        	<td class='n'>".$this->html->money(0)."</td>
+        	<td class='n'>".$this->html->money($total)."</td>
+        	<td class='n'>".$this->html->money($amount)."</td>
+        	<td class='n'>".$this->html->money($interest)."</td>
+        	<td class='n'>".$this->html->money($balance)."</td>
+        	<td class='n'>".$this->html->money($interest)."</td>
+        	<td class='n'>".$this->html->money($data['rate']*100)." %</td>
+        	<td class='n'>$days</td>
+        	<td>Aligned to $align_text $notes</td>
+        	</tr>";
             $plan[]=array(
             'no'=>$no,
             'action'=>'Pay',
@@ -207,6 +629,10 @@ class Planner
             'info'=>'',
                 );
         }
+        /// END ========  Align to date
+
+
+        $date_alligned=$date;
     //if($pays_per_year>1)$months=12/$months_loan; else $months=12;
         if ($pays_per_year>1) {
             $months=12/$pays_per_year;
@@ -214,19 +640,24 @@ class Planner
             $months=12;
         }
         //echo "pays_per_year=$pays_per_year / $months_loan ($months)<br>";
+
+
+        /// ========  Loop for periods
         for ($i=1; $i<=$periods; $i++) {
             $no++;
             $date_prev=$date;
             if ($months>1) {
                 //echo "$months / $days_loan<br>";
                 if ($pays_per_year>=1) {
-                    $date=$this->dates->F_dateadd_month($date, $months);
+                    $date_before=$date;
+                    $date=$this->dates->F_dateadd_month($date_alligned, $months*$i,$ignore_weekends);
+                    //echo $this->html->pre_display($pays_per_year,"$date_before - $date pays_per_year $months ($days_add)");
                 } else {
                     $date=$this->dates->F_dateadd($date, $days_loan);
                     //echo "DL:$days_loan<br>";
                 }
             
-                if ($days_add>0) {
+                if (($days_add>0)&&($data['align']==32)) {
                     $date=$this->dates->lastday_in_month($this->dates->F_dateadd($date, -15));
                 }
                 if (($days_add>0)&&($i==$periods)) {
@@ -255,10 +686,14 @@ class Planner
                 'dt'=>$data[date],
                 'base'=>$data[base],
                 'compound'=>$data[compound],
+                'interest_margin'=>$data[interest_margin],
+                'maturity_id'=>$data[maturity_id],
+                'source_id'=>$data[source_id],
                 'note'=>'Plan Loan. Main No '.$no,
                 );
 
                 $calc_interest=$this->interest->getInterest($data4interest);
+
                 $found=1;
         
                 $res[balance]=$balance_prev;
@@ -270,11 +705,11 @@ class Planner
                 $res[days_till_next]=-$days_chk;
                 //$info=$this->html->pre_display($res);
                 $info.="<table>
-		<tr><td>Balance:</td><td class='n'>".$this->html->money($res[balance])."</td></tr>
-		<tr><td>Interest:</td><td class='n'>".$this->html->money($res[interest])."</td></tr>
-		<tr><td>Interest acc:</td><td class='n'>".$this->html->money($res[t_interest_paid])."</td></tr>
-		<tr><td>DTNP:</td><td class='n'>$res[days_till_next]</td></tr>
-		</table>";
+        		<tr><td>Balance:</td><td class='n'>".$this->html->money($res[balance])."</td></tr>
+        		<tr><td>Interest:</td><td class='n'>".$this->html->money($res[interest])."</td></tr>
+        		<tr><td>Interest acc:</td><td class='n'>".$this->html->money($res[t_interest_paid])."</td></tr>
+        		<tr><td>DTNP:</td><td class='n'>$res[days_till_next]</td></tr>
+        		</table>";
                 $notes="<span class='label'>DATE $data[date]</span><br><span class=''>$info</span>";
             }
 
@@ -286,13 +721,17 @@ class Planner
             'dt'=>$date,
             'base'=>$data[base],
             'compound'=>$data[compound],
+            'interest_margin'=>$data[interest_margin],
+            'maturity_id'=>$data[maturity_id],
+            'source_id'=>$data[source_id],
             'note'=>'Plan Loan. Final',
             );
 
             $calc_interest=$this->interest->getInterest($data4interest);
+            //echo $this->html->pre_display($calc_interest,"calc_interest");
             $interest=$calc_interest[interest];
             $pmt=(($i%$payment_range)==0)?$pmt_amount:0;
-            //echo "I.$i=".($i%$payment_range)."<br>";
+            //echo "I.$i=".($i%$payment_range)." ($pmt)($pmt_amount)($payment_range)<br>";
             if (($pmt==0)&&($i==$periods)) {
                 $pmt=$balance+$interest;
             }
@@ -316,18 +755,18 @@ class Planner
             $t_total_paid+=$total;
             $t_days+=$days;
             $tbl.="<tr class='$class'><td>$no</td>
-	<td>Pay</td>
-	<td>$date</td>
-	<td class='n'>".$this->html->money(0)."</td>
-	<td class='n'>".$this->html->money($total)."</td>
-	<td class='n'>".$this->html->money($amount)."</td>
-	<td class='n'>".$this->html->money($interest)."</td>
-	<td class='n'>".$this->html->money($balance)."</td>
-	<td class='n'>".$this->html->money($interest)."</td>
-	<td class='n'>".$this->html->money($data['rate']*100)." %</td>
-	<td class='n'>$days</td>
-	<td>$notes</td>
-	</tr>";
+        	<td>Pay</td>
+        	<td>$date</td>
+        	<td class='n'>".$this->html->money(0)."</td>
+        	<td class='n'>".$this->html->money($total)."</td>
+        	<td class='n'>".$this->html->money($amount)."</td>
+        	<td class='n'>".$this->html->money($interest)."</td>
+        	<td class='n'>".$this->html->money($balance)."</td>
+        	<td class='n'>".$this->html->money($interest)."</td>
+        	<td class='n'>".$this->html->money($data['rate']*100)." %</td>
+        	<td class='n'>$days</td>
+        	<td>$notes</td>
+        	</tr>";
             $plan[]=array(
             'no'=>$no,
             'action'=>'Pay',
@@ -346,6 +785,10 @@ class Planner
             'info'=>'',
                 );
         }
+
+        /// END ========  Loop for periods
+
+
         $totals=array_fill(0, 10, 0);
         $totals[2]=$data[amount];
         $totals[3]=$t_total_paid;
