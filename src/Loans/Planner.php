@@ -380,7 +380,7 @@ class Planner
                 $no_str='';
                 $interest_paid=0;
             }
-
+            //echo \util::pre_display($period_data,"period_data");
             $tbl.="<tr class='$class'><td>$no_str</td>
             <td>$period_data[note]</td>
             <td>$date</td>
@@ -394,6 +394,7 @@ class Planner
             <td class='n'>$days</td>
             <td class='n'>".$this->html->money($default_interest)."</td>
             <td class='n'>".$this->html->money($libor_interest)."</td>
+
             <td class='n'>".$this->html->money($period_data['libor_rate']*100,'','',5)." %</td>
             <td>$period_data[libor_date]</td>
             <td>$note</td>

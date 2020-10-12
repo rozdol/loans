@@ -128,6 +128,8 @@ class Loan
 
 
         $transactions=$res[transactions];
+        //echo \util::pre_display($transactions,"transactions");
+
         //$bal=$transactions[0][given];
         $notes=$transactions[0][descr];
         $last_intpaid=$transactions[0][date];
@@ -246,7 +248,7 @@ class Loan
                     $loan=$this->getInterest($data);
 
 
-                    if ($loan_data[compound]=='f') {
+                    if (($loan_data[compound]=='f')||($loan_data[compound]==0)) {
                         //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
                         $int_bal=$int_bal+$loan[interest];//-$transaction[paid];
                     } else {
@@ -327,6 +329,7 @@ class Loan
 
                 $df=$loan[dt];
                 $dt=$transaction[date];
+                if(isset($transaction[rate]))$rate=$transaction[rate];
                 $days=$this->dates->F_datediff($df, $loan_data[dt]);
                 $notes=$transaction[descr];
                 // Check for penalties
@@ -357,7 +360,7 @@ class Loan
 
                 //$notes="<span class='badge info'>".$this->html->money($int_bal)." + ".$this->html->money($loan[interest])."</span> $notes";
 
-                if ($loan_data[compound]=='f') {
+                if (($loan_data[compound]=='f')||($loan_data[compound]==0)) {
                     $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]), 2);
                     $int_bal=$int_bal+$loan[interest]-$transaction[paid]-$transaction[adjustment];
                 } else {
@@ -391,7 +394,7 @@ class Loan
                 <td class='n'>".$this->html->money($transaction[adjustment])."</td>
                 <td class='n'>".$this->html->money($bal)."</td>
                 <td class='n'>".$this->html->money($int_bal)."</td>
-                <td class='n'>".$this->html->money($rate*100)." %</td>
+                <td class='n'>".$this->html->money($rate*100,'','',5)." %</td>
                 <td class='n'>$loan[days]</td>
                 <td>$notes</td>
                 </tr>";
@@ -448,7 +451,7 @@ class Loan
             $loan=$this->getInterest($data);
 
 
-            if ($loan_data[compound]=='f') {
+            if (($loan_data[compound]=='f')||($loan_data[compound]==0)) {
                 //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
                 $int_bal=$int_bal+$loan[interest];//-$transaction[paid];
             } else {
@@ -522,7 +525,7 @@ class Loan
 
         //echo $this->html->pre_display($data, "DATA: $i $dt $descr"); echo $this->html->pre_display($loan, "RES: $i $dt $descr");
 
-        if ($loan_data[compound]=='f') {
+        if (($loan_data[compound]=='f')||($loan_data[compound]==0)) {
             //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
             $int_bal=$int_bal+$loan[interest];
         } else {

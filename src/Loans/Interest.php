@@ -46,7 +46,7 @@ class Interest
         $res=$data;
         $res[days]=$this->dates->F_datediff($res[df], $res[dt], $res[base]);
         $res[years]=$res[days]/$daysinyear;
-        if ($res[compound]=='f') {
+        if (($res[compound]=='f')||($res[compound]==0)) {
             $res[interest]=0;
             $res[df1]=$res[df];
             $res[dt1]="31.12.".substr($res[df], 6, 4);
@@ -108,8 +108,9 @@ class Interest
             $res[balance]=$res[amount]+$res[interest];
         }
         $res[formula]=substr($res[formula], 0, -3);
-        //echo $this->pre_display($res,"Calc Interest $res[note]");
+
         $res[csv]=implode(';', $res);
+        //echo \util::pre_display($res,"Calc Interest $res[note]");
         return $res;
     }
 }
