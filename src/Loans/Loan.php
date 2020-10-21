@@ -118,7 +118,6 @@ class Loan
             'dt'=>$loan_data[dt],
             'base'=>$loan_data[base],
             'compound'=>$loan_data[compound],
-            'interest_margin'=>$loan_data[interest_margin],
             'maturity_id'=>$loan_data[maturity_id],
             'source_id'=>$loan_data[source_id],
             'note'=>'Calc Loan. Initial',
@@ -134,7 +133,7 @@ class Loan
         $notes=$transactions[0][descr];
         $last_intpaid=$transactions[0][date];
 
-        $fields=array('#','Action','date','Given','returned','int.Paid','int.adj.','Balance','Ineterest','rate','days','');
+        $fields=array('#','Action','date','Given','returned','int.Paid','int.adj.','Balance','Interest','rate','days','');
         $tbl=$this->html->tablehead($what, $qry, $order, $addbutton, $fields, $sort);
         //transactions
         $GLOBALS[debug][stopwatch]='calc_loan_main';
@@ -238,7 +237,6 @@ class Loan
                         'dt'=>$dt,
                         'base'=>$base,
                         'compound'=>$loan_data[compound],
-                        'interest_margin'=>$loan_data[interest_margin],
                         'maturity_id'=>$loan_data[maturity_id],
                         'source_id'=>$loan_data[source_id],
                         'note'=>'Calc Loan. Expired',
@@ -346,7 +344,6 @@ class Loan
                     'dt'=>$dt,
                     'base'=>$base,
                     'compound'=>$loan_data[compound],
-                    'interest_margin'=>$loan_data[interest_margin],
                     'maturity_id'=>$loan_data[maturity_id],
                     'source_id'=>$loan_data[source_id],
                     'note'=>'Calc Loan. Rest Transactions',
@@ -430,7 +427,7 @@ class Loan
         if (($days<0)&&($bal>0)&&($expired==0)) {
             $expired++;
             $i++;
-            $rate=$loan_data[p_rate];
+            $rate=$loan_data[rate];
             $class='red';
             $df=$loan[dt];
             $dt=$loan_data[dt];
@@ -442,7 +439,6 @@ class Loan
                 'dt'=>$dt,
                 'base'=>$base,
                 'compound'=>$loan_data[compound],
-                'interest_margin'=>$loan_data[interest_margin],
                 'maturity_id'=>$loan_data[maturity_id],
                 'source_id'=>$loan_data[source_id],
                 'note'=>'Calc Loan. Expired Period',
@@ -507,31 +503,55 @@ class Loan
         if ($days<=0) {
             $rate=$loan_data[p_rate];
         }
-        $data=array(
-            'amount'=>$bal,
-            'rate'=>$rate,
-            'freq'=>$freq,
-            'df'=>$df,
-            'dt'=>$dt,
-            'base'=>$base,
-            'compound'=>$loan_data[compound],
-            'interest_margin'=>$loan_data[interest_margin],
-            'maturity_id'=>$loan_data[maturity_id],
-            'source_id'=>$loan_data[source_id],
-            'note'=>'Calc Loan. Up to Now',
-        );
-
-        $loan=$this->getInterest($data);
-
-        //echo $this->html->pre_display($data, "DATA: $i $dt $descr"); echo $this->html->pre_display($loan, "RES: $i $dt $descr");
-
-        if (($loan_data[compound]=='f')||($loan_data[compound]==0)) {
-            //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
-            $int_bal=$int_bal+$loan[interest];
-        } else {
-            //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]),2);
-            $int_bal=$loan[interest];
+        if($loan_data[compound_default]>0){
+            $calc_amount=$bal+$int_bal;
+        }else{
+            $calc_amount=$bal;
         }
+
+        $periods=floor(($loan[days]/365)/$freq)+1;
+        $months=round(12/($periods-1));
+        $df_calc=$df;
+        for ($period=0; $period < $periods; $period++) {
+
+            $dt_calc=$this->dates->F_dateadd_month($df_calc, $months);
+            if($this->dates->is_later($dt_calc,$dt))$dt_calc=$dt;
+            $data=array(
+               'amount'=>$calc_amount,
+               'rate'=>$rate,
+               'freq'=>$freq,
+               'df'=>$df_calc,
+               'dt'=>$dt_calc,
+               'base'=>$base,
+               'compound'=>$loan_data[compound],
+               'maturity_id'=>$loan_data[maturity_id],
+               'source_id'=>$loan_data[source_id],
+               'note'=>'Calc Loan. Up to Now',
+            );
+
+            $loan=$this->getInterest($data);
+            if($loan_data[compound_default]>0){
+               $calc_amount=$calc_amount+$loan[interest];
+            }else{
+               $calc_amount=$calc_amount;
+            }
+            $df_calc=$dt_calc;
+
+            if (($loan_data[compound_default]=='t')||($loan_data[compound_default]==1)) {
+                //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]),2);
+                $int_bal=$int_bal+$loan[interest];
+            } else {
+                //$bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]),2);
+                $int_bal=$loan[interest];
+            }
+            //echo $this->html->pre_display([$data,$loan], "DATA: period:$period days:$loan[days] periods:$periods i:$i dt:$dt $descr");
+            //echo $this->html->pre_display($loan, "RES: $i $dt $descr");
+        }
+
+
+
+
+
         // echo $this->html->cols2($this->html->pre_display($data,"$loan_data[date] data NOW"),$this->html->pre_display($loan,"loan NOW $int_bal"));
 
 
