@@ -294,7 +294,7 @@ class Planner
         $months_loan_rounded=round($months_loan);
         $data[months_loan_rounded]=$months_loan_rounded;
         if($data[maturity_id]>0){
-            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','rate','days','default int.','ibor+margin int.','ibor rate','ibor date','');
+            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','rate','def.Interest','Def.rate','days','ibor int.','ibor rate','ibor date','');
             }else{
                 $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','rate','def.Interest','Def.rate','days','');
             }
@@ -361,6 +361,7 @@ class Planner
                 $interest=0;
                 $no_str='';
                 $interest_paid=0;
+                $libor_interest=0;
             }
 
             $t_given+=$given;
@@ -423,10 +424,11 @@ class Planner
             <td class='n'>".$this->html->money($def_interest)."</td>
             <td class='n'>".$this->html->money($def_rate*100,'','',5)." %</td>
             <td class='n'>$days</td>";
-            if($data[maturity_id]>0){$tbl.="<td class='n'>".$this->html->money($default_interest)."</td>
-            <td class='n'>".$this->html->money($libor_interest)."</td>
-            <td class='n'>".$this->html->money($period_data['libor_rate']*100,'','',5)." %</td>
-            <td>$period_data[libor_date]</td>";
+            if($data[maturity_id]>0){
+            //$tbl.="<td class='n'>".$this->html->money($default_interest)."</td>";
+            $tbl.="<td class='n'>".$this->html->money($libor_interest)."</td>";
+            $tbl.="<td class='n'>".$this->html->money($period_data['libor_rate']*100,'','',5)." %</td>";
+            $tbl.="<td>$period_data[libor_date]</td>";
             }
             $tbl.="<td>$note</td>";
             //$tbl.="<td class='n'>G:".$this->html->money($t_given)." A:".$this->html->money($t_amount)." p:".$this->html->money($t_paid)." I:".$this->html->money($t_interest_paid)." ".$this->html->money($t_interest_paid)."</td>";
@@ -465,8 +467,8 @@ class Planner
         //$totals[6]=$balance;
         $totals[11]=$t_days;
         if($data[maturity_id]>0){
-            $totals[10]=$t_default_interest;
-            $totals[11]=$t_libor_interest;
+            //$totals[12]=$t_default_interest;
+            $totals[12]=$t_libor_interest;
             //$totals[12]=$t_margin_interest;
         }
 
