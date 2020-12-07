@@ -318,7 +318,7 @@ class Planner
             //echo $this->html->pre_display($calc_interest,"calc_interest");
             $interest=$calc_interest[interest];
 
-            $data4interest[rate]=$period_data['libor_rate']+$period_data['rate'];
+            $data4interest[rate]=$period_data['libor_rate'];//+$period_data['rate'];
             $calc_interest=$this->interest->getInterest($data4interest);
             $libor_interest=$calc_interest[interest];
 
