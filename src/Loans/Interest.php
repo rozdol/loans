@@ -46,6 +46,7 @@ class Interest
         $res=$data;
         $res[days]=$this->dates->F_datediff($res[df], $res[dt], $res[base]);
         $res[years]=$res[days]/$daysinyear;
+        $res[daysinyear]=$daysinyear;
         if (($res[compound]=='f')||($res[compound]==0)) {
             $res[interest]=0;
             $res[df1]=$res[df];
@@ -55,6 +56,7 @@ class Interest
             }
             //Calc 1st interest
             $days=$this->dates->F_datediff($res[df], $res[dt1]);
+
             //$daysinyear=$this->dates->F_daysinyear($res[dt1]);
             $daysinyear=($data[base]=='365')?$this->dates->F_daysinyear($res[dt1]):360;
             $years=$days/$daysinyear;
@@ -65,6 +67,7 @@ class Interest
             }
 
             $res[days_calc]+=$days;
+
             if ($this->dates->is_earlier($res[dt1], $res[dt])) {
                 $res[debug].="Continue | ";
                 $res[dt2]=$this->dates->F_dateadd($res[dt1], 1);
@@ -103,10 +106,13 @@ class Interest
                 $GLOBALS[debug][calc_interest][]=$res;
             }
         } else {
+            //$res[years]=round($res[years],1);
             $res[interest]=$res[amount]*pow((1+$res[rate]/$res[freq]), ($res[freq]*$res[years]))-$res[amount];
             $res[interest]=round($res[interest], 2);
             $res[balance]=$res[amount]+$res[interest];
+            $res[formula]="$res[amount]*pow((1+$res[rate]/$res[freq]), ($res[freq]*$res[years]))-$res[amount]   ";
         }
+        //if($days==0)$res[interest]=0;
         $res[formula]=substr($res[formula], 0, -3);
 
         $res[csv]=implode(';', $res);

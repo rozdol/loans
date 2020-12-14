@@ -124,7 +124,7 @@ class Loan
         );
 
         $whole_loan=$this->getInterest($data);
-
+        //echo $this->html->pre_display($whole_loan,"whole_loan");
 
         $transactions=$res[transactions];
         //echo \util::pre_display($transactions,"transactions");
@@ -133,7 +133,7 @@ class Loan
         $notes=$transactions[0][descr];
         $last_intpaid=$transactions[0][date];
 
-        $fields=array('#','Action','date','Given','returned','int.Paid','int.adj.','Balance','Interest','Interest bal','rate','days','');
+        $fields=array('#','Action','date','Given','returned','int.Paid','int.adj.','Balance','Interest','Interest bal','Margin rate','Floating rate' ,'Int. rate total','days','');
         $tbl=$this->html->tablehead($what, $qry, $order, $addbutton, $fields, $sort);
         //transactions
         $GLOBALS[debug][stopwatch]='calc_loan_main';
@@ -147,9 +147,11 @@ class Loan
             $i++;
             $descr='';
             $class='';
+            $rate=$transaction[rate_margin]+$transaction[rate_float];
             if ($transaction[given]>0) {
                 $descr.='Give';
                 $type='GIV';
+
             }
             if ($transaction[returned]>0) {
                 $descr.='Return';
@@ -165,18 +167,25 @@ class Loan
                 $last_intpaid=$transaction[date];
                 $type='ADJ';
             }
-            if (($transaction[given]==0)&&($transaction[returned]==0)&&($transaction[paid]==0)&&($transaction[adjustment]==0)&&($transaction[descr]!='chk')) {
+            if (($transaction[given]==0)&&($transaction[returned]==0)&&($transaction[paid]==0)&&($transaction[adjustment]==0)&&(($transaction[descr]!='chk')||($transaction[descr]!='matur'))) {
                 $type='ADD';
                 $descr.='Addendum';
-                //$rate=$transaction[rate];
-                $freq=$transaction[freq];
+                //$rate=$transaction[rate_margin]+$transaction[rate_float];
+                if($transaction[freq]>0)$freq=$transaction[freq];
                 $days_allowed=$daysinyear/$freq;
             }
 
             if (($transaction[given]==0)&&($transaction[returned]==0)&&($transaction[paid]==0)&&($transaction[adjustment]==0)&&($transaction[descr]=='chk')) {
                 $type='CHK';
                 $descr='Check';
-                $rate=$transaction[rate];
+                $rate=$transaction[rate_margin]+$transaction[rate_float];
+                // $freq=$transaction[freq];
+                //$days_allowed=$daysinyear/$freq;
+            }
+            if (($transaction[given]==0)&&($transaction[returned]==0)&&($transaction[paid]==0)&&($transaction[adjustment]==0)&&($transaction[descr]=='matur')) {
+                $type='MTRT';
+                $descr='Maturity';
+                $rate=$transaction[rate_margin]+$transaction[rate_float];
                 // $freq=$transaction[freq];
                 //$days_allowed=$daysinyear/$freq;
             }
@@ -206,11 +215,15 @@ class Loan
                 <td class='n'>".$this->html->money($transaction[paid])."</td>
                 <td class='n'>".$this->html->money($transaction[paid])."</td>
                 <td class='n'>".$this->html->money($transaction[paid])."</td>
+
+                <td class='n'>".$this->html->money($transaction[rate_margin]*100,'','',5)." %</td>
+                <td class='n'>".$this->html->money($transaction[rate_float]*100,'','',5)." %</td>
+
                 <td class='n'>".$this->html->money($rate*100)." %</td>
                 <td class='n'>$loan[days]</td>
                 <td>$notes</td>
                 </tr>";
-                $totals[10]+=$loan[days];
+                $totals[12]+=$loan[days];
                 $plan[$i]=array(
                     'no'=>$i,
                     'action'=>'Pay',
@@ -235,7 +248,7 @@ class Loan
                 if (($days<0)&&($bal>0)&&($expired==0)) { // Transaction was after expiration of the loan
                     $expired++;
                     $i++;
-                    $rate=$loan_data[p_rate];
+                    $rate=$loan_data[p_rate]+$transaction[rate_float];
                     $class='red';
                     $df=$loan[dt];
                     $dt=$loan_data[dt];
@@ -281,11 +294,15 @@ class Loan
                     <td class='n'>".$this->html->money($bal)."</td>
                     <td class='n'>".$this->html->money($loan[interest])."</td>
                     <td class='n'>".$this->html->money($int_bal)."</td>
+
+                    <td class='n'>".$this->html->money($transaction[rate_margin]*100,'','',5)." %</td>
+                    <td class='n'>".$this->html->money($transaction[rate_float]*100,'','',5)." %</td>
+
                     <td class='n'>".$this->html->money($rate*100)." %</td>
                     <td class='n'>$loan[days]</td>
                     <td>Expired period</td>
                     </tr>";
-                    $totals[10]+=$loan[days];
+                    $totals[12]+=$loan[days];
                     $plan[$i]=array(
                         'no'=>$i,
                         'action'=>$descr,
@@ -331,7 +348,7 @@ class Loan
                 // if (($transaction[given]==0)&&($transaction[returned]==0)&&($transaction[paid]==0)&&($transaction[adjustment]==0)) {
                 //     $type='ADD';
                 //     $descr='Addendum';
-                //     //$rate=$transaction[rate];
+                //     //$rate=$transaction[rate_margin]+$transaction[rate_float];
                 //     $freq=$transaction[freq];
                 //     $days_allowed=$daysinyear/$freq;
                 // }
@@ -339,12 +356,12 @@ class Loan
 
                 $df=$loan[dt];
                 $dt=$transaction[date];
-                if(isset($transaction[rate]))$rate=$transaction[rate];
+                if(isset($transaction[rate]))$rate=$transaction[rate_margin]+$transaction[rate_float];
                 $days=$this->dates->F_datediff($df, $loan_data[dt]);
                 $notes=$transaction[descr];
                 // Check for penalties
                 if (($days<0)&&($bal*.9>0)) {
-                    $rate=$loan_data[p_rate];
+                    $rate=$loan_data[p_rate]+$transaction[rate_float];
                     $class='roze';
                     $res[err].="$df Penalty rate of ".($rate*100)." % is applied (Bal:$bal).<br>";
                 }
@@ -364,16 +381,16 @@ class Loan
                 $loan=$this->getInterest($data);
 
 
-                //echo $this->html->cols2($this->html->pre_display($data,'data'),$this->html->pre_display($loan,'loan')); //exit;
+                //echo $this->html->cols2($this->html->pre_display($data,'data '.$i),$this->html->pre_display($loan,'loan')); //exit;
 
 
                 //$notes="<span class='badge info'>".$this->html->money($int_bal)." + ".$this->html->money($loan[interest])."</span> $notes";
 
                 if (($loan_data[compound]=='f')||($loan_data[compound]==0)) {
                     $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]), 2);
-                    $int_bal=$int_bal+$loan[interest]-$transaction[paid]-$transaction[adjustment];
+                    $int_bal=$int_bal+$loan[interest]-$transaction[paid]+$transaction[adjustment];
                 } else {
-                    $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]-$transaction[adjustment]), 2);
+                    $bal=round(($loan[balance]+$transaction[given]-$transaction[returned]-$transaction[paid]+$transaction[adjustment]), 2);
                     $int_bal=$loan[interest];
                 }
                 // echo $this->html->cols2($this->html->pre_display($data,"$loan_data[date] data REST"),$this->html->pre_display($loan,"loan REST $int_bal"));
@@ -404,11 +421,15 @@ class Loan
                 <td class='n'>".$this->html->money($bal)."</td>
                 <td class='n'>".$this->html->money($loan[interest])."</td>
                 <td class='n'>".$this->html->money($int_bal)."</td>
+
+                <td class='n'>".$this->html->money($transaction[rate_margin]*100,'','',5)." %</td>
+                <td class='n'>".$this->html->money($transaction[rate_float]*100,'','',5)." %</td>
+
                 <td class='n'>".$this->html->money($rate*100,'','',5)." %</td>
                 <td class='n'>$loan[days]</td>
                 <td>$notes</td>
                 </tr>";
-                $totals[10]+=$loan[days];
+                $totals[12]+=$loan[days];
                 $plan[$i]=array(
                     'no'=>$i,
                     'action'=>$descr,
@@ -428,7 +449,7 @@ class Loan
                 );
 
                 if ($type=='ADD') {
-                    $rate=$transaction[rate];
+                    $rate=$transaction[rate_margin]+$transaction[rate_float];
                 }
             }
             $totals[8]+=$loan[interest];
@@ -483,11 +504,15 @@ class Loan
             <td class='n'>".$this->html->money($bal)."</td>
             <td class='n'>".$this->html->money($loan[interest])."</td>
             <td class='n'>".$this->html->money($int_bal)."</td>
+
+            <td class='n'>".$this->html->money($transaction[rate_margin]*100,'','',5)." %</td>
+            <td class='n'>".$this->html->money($transaction[rate_float]*100,'','',5)." %</td>
+
             <td class='n'>".$this->html->money($rate*100)." %</td>
             <td class='n'>$loan[days]</td>
             <td>Expired period 2</td>
             </tr>";
-            $totals[10]+=$loan[days];
+            $totals[12]+=$loan[days];
             $plan[$i]=array(
                 'no'=>$i,
                 'action'=>$descr,
@@ -517,7 +542,7 @@ class Loan
         $dt=$transaction[date];
         $days=$this->dates->F_datediff($df, $loan_data[dt]);
         if ($days<=0) {
-            $rate=$loan_data[p_rate];
+            $rate=$loan_data[p_rate]+$transaction[rate_float];
         }
         if($loan_data[compound_default]>0){
             $calc_amount=$bal+$int_bal;
@@ -607,7 +632,7 @@ class Loan
 
 
         if (($days<=0)&&($bal*.9>0)) {
-            $rate=$loan_data[p_rate];
+            $rate=$loan_data[p_rate]+$transaction[rate_float];
             $class='roze';
             $res[err].="$df Penalty rate of ".($rate*100)." % is applied (Bal:$bal).<br>";
         }
@@ -625,7 +650,7 @@ class Loan
         }
         //$totals[8]+=$loan[interest]+$totals[5];
         $totals[8]=$int_bal;//+$expired_interest;
-        $totals[7]=$int_bal;
+        //$totals[7]=$int_bal;
         $totals[0]=$bal+$totals[8];
         //echo $this->html->pre_display($loan, "$i $dt $descr");
         $tbl.="<tr class='$class'><td>$i</td>
@@ -638,11 +663,15 @@ class Loan
         <td class='n'>".$this->html->money($bal)."</td>
         <td class='n'>".$this->html->money($loan[interest])."</td>
         <td class='n'>".$this->html->money($int_bal)."</td>
+
+        <td class='n'>".$this->html->money($transaction[rate_margin]*100,'','',5)." %</td>
+        <td class='n'>".$this->html->money($transaction[rate_float]*100,'','',5)." %</td>
+
         <td class='n'>".$this->html->money($rate*100)." %</td>
         <td class='n'>$loan[days]</td>
         <td>Up to now </td>
         </tr>";
-        $totals[10]+=$loan[days];
+        $totals[12]+=$loan[days];
         $plan[$i]=array(
             'no'=>$i,
             'action'=>$descr,
@@ -661,17 +690,25 @@ class Loan
             'info'=>'Up to now',
         );
         $totals[6]=$bal;
+        if (($loan_data[compound]=='f')||($loan_data[compound]==0)) {
+            $totals[9]=$totals[7];
+        }else{
+            $totals[9]=$totals[7]+$totals[8];
+        }
+
         //echo "$i. $transaction[date] $descr B:$bal<br>";
         $tbl.=$this->html->tablefoot($i, $totals, $i);
         $res[tbl]=$tbl;
         $res[csv]=$this->utils->tbl2csv($tbl);
         $res[data]=$plan;
+        $res[balance]=round($totals[6], 2);
         $res[given]=$totals[2];
         $res[returned]=$totals[3];
         $res[returned_i]=$totals[4];
         $res[interest]=round($totals[8], 2);//+$expired_interest;
-        $res[interest_accrued]=round($res[interest]+$res[returned_i], 2);
-        $res[balance]=round($totals[6], 2);
+        $res[interest_accrued]=round($totals[9], 2);
+        $res[interest_due]=$res[interest_accrued]-$res[returned_i];
+
         $res[interest_predict]=round($whole_loan[interest]);
         $res[completion]=round((($res[given]+$res[returned]+$res[returned_i]))/(($whole_loan[amount]*2+$res[interest_accrued])), 2);
         $res[completion_prc]=$res[completion]*100;
@@ -688,7 +725,7 @@ class Loan
         $out.="<tr><td class='mr'><b>Amount returned: </b></td><td class='mr'>".$this->html->money($res[returned])."</td></tr>";
         $out.="<tr><td class='mr'><b>Amount interest accrued: </b></td><td class='mr'>".$this->html->money($res[interest_accrued])."</td></tr>";
         $out.="<tr><td class='mr'><b>Amount interest paid: </b></td><td class='mr'>".$this->html->money($res[returned_i])."</td></tr>";
-        $out.="<tr><td class='mr'><b>Amount interest due: </b></td><td class='mr'>".$this->html->money($res[interest])."</td></tr>";
+        $out.="<tr><td class='mr'><b>Amount interest due: </b></td><td class='mr'>".$this->html->money($res[interest_due])."</td></tr>";
         $out.="<tr><td class='mr'><b>Amount interest planned (max): </b></td><td class='mr'>".$this->html->money($res[interest_predict])."</td></tr>";
         $out.="</table>";
         $res[details]=$out;

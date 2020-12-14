@@ -294,7 +294,7 @@ class Planner
         $months_loan_rounded=round($months_loan);
         $data[months_loan_rounded]=$months_loan_rounded;
         if($data[maturity_id]>0){
-            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','rate','def.Interest','Def.rate','days','ibor int.','ibor rate','ibor date','');
+            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','Int. rate total','def.Interest','Def.rate','days','Margin rate','floating int.','floating rate','rate date','');
             }else{
                 $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','rate','def.Interest','Def.rate','days','');
             }
@@ -425,7 +425,7 @@ class Planner
             <td class='n'>".$this->html->money($def_rate*100,'','',5)." %</td>
             <td class='n'>$days</td>";
             if($data[maturity_id]>0){
-            //$tbl.="<td class='n'>".$this->html->money($default_interest)."</td>";
+            $tbl.="<td class='n'>".$this->html->money($margin_rate*100,'','',5)."</td>";
             $tbl.="<td class='n'>".$this->html->money($libor_interest)."</td>";
             $tbl.="<td class='n'>".$this->html->money($period_data['libor_rate']*100,'','',5)." %</td>";
             $tbl.="<td>$period_data[libor_date]</td>";
