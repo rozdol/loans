@@ -46,6 +46,10 @@ class Loan
     {
         return $this->planner->getPlan($data);
     }
+    public function getPlanV2($data)
+    {
+        return $this->planner->getPlanV2($data);
+    }
     public function calcPmt($data)
     {
         //unset($data);

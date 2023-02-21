@@ -32,6 +32,7 @@ class Planner
      */
     public function getDates($data)
     {
+        // echo $this->html->pre_display($data,"getDates data");
         $found=0;
         $periods=$data['periods'];
         $ignore_weekends=$data['ignore_weekends'];
@@ -209,9 +210,11 @@ class Planner
         /// ============  Loop for chk and eoy dates
         foreach ($period_data_arr as $key => $period_data) {
             // check for chk date
-            if(($this->dates->is_earlier($period_data_chk[dt],$period_data[dt],1))&&($inserted==0)){
+            if(($this->dates->is_earlier($period_data_chk[dt],$period_data[dt],0))&&($inserted==0)){
                 $inserted=1;
                 $item_no++;
+                $period_data_chk[df]=$period_data_arr2[$item_no-1][dt];
+                $period_data_chk[days]=$this->dates->F_datediff($period_data_chk[df], $period_data_chk[dt], $data[base]);
                 $period_data_chk['no']=$item_no;
                 $period_data_arr2[$item_no]=$period_data_chk;
             }
@@ -249,6 +252,8 @@ class Planner
             $inserted=1;
             $item_no++;
             $period_data_chk['no']=$item_no;
+            $period_data_chk[df]=$period_data_arr2[$item_no-1][dt];
+            $period_data_chk[days]=$this->dates->F_datediff($period_data_chk[df], $period_data_chk[dt], $data[base]);
             $period_data_arr2[$item_no]=$period_data_chk;
         }
         $data['periods']=$periods;
@@ -257,7 +262,146 @@ class Planner
         return $res;
     }
 
+    public function getPlanV2($data)
+    {
+        // echo $this->html->pre_display($data,"getPlanV2 data");
+        $period_data_arr=$data[period_data];
+        $balance_prev=$data[amount];
+        $interest_accumulated=$data[interest_bf];
+        $interest_balance=$data[interest_bf];
+        if($data[maturity_id]>0){
+            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','Int.paid','Balance','Interest','Int. Accum.','Interest Bal','Tot.Bal.','Int. rate total','Days','Margin rate','Floating int.','Floating rate','Rate date','');
+        }else{
+            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','rate','def.Interest','Def.rate','days','');
+        }
+        $tbl=$this->html->tablehead($what, $qry, $order, $addbutton, $fields, 'no_sort');
+        $m=0;
+        foreach ($period_data_arr as $key => $period_data) {
+            $i++;
+            if($period_data[note]=='maturity')$m++;
+            $date=$period_data[dt];
+            $given=($period_data[note]=='loan')?$data[amount]:0;
+            $days=$period_data[days];//$this->dates->F_datediff($date_prev, $date, $data[base]);
+            if($period_data[note]!='chk')$t_days+=$days;
+            $rate=$period_data['rate'];
+            $margin_rate=$data['rate'];
+            $data4interest=[
+                'amount'=>$balance_prev,
+                'rate'=>$period_data['rate'],
+                'freq'=>$data['compounding_freq'],
+                'df'=>$period_data[df],
+                'dt'=>$period_data[dt],
+                'base'=>$data[base],
+                'compound'=>$data[compound],
+                'note'=>$period_data[note],
+            ];
+            $calc_interest=$this->interest->getInterest($data4interest);
+            // echo $this->html->cols2($this->html->pre_display($data4interest,"data4interest $period_data[df] $period_data[dt] $period_data[note]"),$this->html->pre_display($calc_interest,"calc_interest $period_data[df] $period_data[dt] $period_data[note]"));
+            $interest=$calc_interest[interest];
 
+            $data4interest[rate]=$period_data['libor_rate'];//+$period_data['rate'];
+            $calc_interest=$this->interest->getInterest($data4interest);
+            $libor_interest=$calc_interest[interest];
+            $interest_amount=$interest;
+            $modulus=($m) % $data[compounding_mod];
+            $interest_balance+=$interest_amount;
+            if (($data[compounding]>0)&&($modulus == 0)&&($period_data[note]=='maturity')){
+                $balance=$balance+$interest_balance;
+                $interest_balance=0;
+            }
+            $no_str="$i";
+            $balance=$balance+$given-$returned;
+            $interest_accumulated+=$interest_amount;
+            
+            $total_balance=$balance+$interest_balance;
+            $class='';
+            if($period_data[note]=='chk')$class='bold';
+            $tbl.="<tr class='$class'><td>$no_str</td>
+            <td>$period_data[note]</td>
+            <td>$date</td>
+            <td class='n'>".$this->html->money($given)."</td>
+            <td class='n'>".$this->html->money($payment)."</td>
+            <td class='n'>".$this->html->money($pricipa_paid)."</td>
+            <td class='n'>".$this->html->money($interest_paid)."</td>
+            <td class='n'>".$this->html->money($balance)."</td>
+            <td class='n'>".$this->html->money($interest_amount)."</td>
+            <td class='n'>".$this->html->money($interest_accumulated)."</td>
+            <td class='n'>".$this->html->money($interest_balance)."</td>
+            <td class='n'>".$this->html->money($total_balance)."</td>
+            <td class='n'>".$this->html->money($rate*100,'','',5)." %</td>
+            <td class='n'>$days</td>";
+            if($data[maturity_id]>0){
+            $tbl.="<td class='n'>".$this->html->money($margin_rate*100,'','',5)."</td>";
+            $tbl.="<td class='n'>".$this->html->money($libor_interest)."</td>";
+            $tbl.="<td class='n'>".$this->html->money($period_data['libor_rate']*100,'','',5)." %</td>";
+            $tbl.="<td>$period_data[libor_date]</td>";
+            }
+            $tbl.="<td>$note</td>";
+            //$tbl.="<td class='n'>G:".$this->html->money($t_given)." A:".$this->html->money($t_amount)." p:".$this->html->money($t_paid)." I:".$this->html->money($t_interest_paid)." ".$this->html->money($t_interest_paid)."</td>";
+            $tbl.="</tr>";
+
+            $plan[]=[
+                'no'=>$no_str,
+                'action'=>$period_data[note],
+                'date'=>$date,
+                'df'=>$period_data[df],
+                'dt'=>$period_data[dt],
+                'given'=>$given,
+                'returned'=>$amount,
+                'int_paid'=>$interest_paid,
+                'balance'=>$balance,
+                'interest'=>$interest_amount,
+                'interest_accumulated'=>$interest_accumulated,
+                'interest_balance'=>$interest_balance,
+                'total_balance'=>$total_balance,
+                'rate'=>$period_data['rate'],
+                'days'=>$days,
+                'libor_interest'=>$libor_interest,
+                'libor_rate'=>$period_data['libor_rate'],
+                'libor_date'=>$period_data[libor_date],
+                't_given'=>$data[amount],
+                't_returned'=>$t_principal_paid,
+                't_interest'=>$t_interest_paid,
+                't_paid'=>$t_interest_paid+$t_principal_paid,
+                'info'=>'',
+            ];
+
+            if($period_data[note]=='chk'){
+                $data['balance_principal']=$data[amount]-$principal_paid_total;
+                $data['balance_interest']=$total_balance-($data[amount]-$t_principal_paid);
+                $data['balance_total']=$total_balance;
+
+                $interest_accumulated-=$interest_amount;
+                $interest_balance-=$interest_amount;
+                $total_libor_interest-=$libor_interest;
+                // $t_interest-=$interest_amount;
+
+            }
+
+            $balance_prev=$balance;
+            $t_given+=$given;
+            $t_returned+=$returned;
+            $total_libor_interest+=$libor_interest;
+        }
+
+        $totals=array_fill(0, 20, 0);
+        $totals[2]=$t_given;
+        $totals[3]=$t_returned;
+        $totals[6]=$balance;
+        $totals[8]=$interest_accumulated;
+        $totals[9]=$interest_balance;
+        $totals[10]=$total_balance;
+        $totals[12]=$t_days;
+        $totals[14]=$total_libor_interest;
+
+        $tbl.=$this->html->tablefoot($i, $totals, $no);
+        $res=$data;
+        $res[period_data]=$period_data_arr2;
+        $res[tbl]=$tbl;
+        $res[plan]=$plan;
+        //echo $this->html->pre_display($res,"res");
+        return $res;
+    }
     public function getPlan($data)
     {
         //echo $this->html->pre_display($data,"f:getPlan");
@@ -267,7 +411,9 @@ class Planner
         $pmt_amount=$data[pmt];
         $payments=$data['payments'];
         $periods=$data['periods'];
-
+        $t_init_interest=$data['interest_bf'];
+        //$t_interest_compound=$data['interest_bf'];
+        //$t_interest_compound_accum=$data['interest_bf'];
         $payments=$data['payments'];
         $payment_range=round($periods/$payments);
         //echo "payment_range=$payment_range=round($periods/$payments)<br>";
@@ -294,7 +440,7 @@ class Planner
         $months_loan_rounded=round($months_loan);
         $data[months_loan_rounded]=$months_loan_rounded;
         if($data[maturity_id]>0){
-            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','Int. rate total','def.Interest','Def.rate','days','Margin rate','floating int.','floating rate','rate date','');
+            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','Int.paid','Balance','Interest','Int. Accum.','Interest Bal','Tot.Bal.','Int. rate total','Def.Interest','Def.rate','Days','Margin rate','Floating int.','Floating rate','Rate date','');
             }else{
                 $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','rate','def.Interest','Def.rate','days','');
             }
@@ -307,7 +453,7 @@ class Planner
             $data4interest=[
                 'amount'=>$balance,
                 'rate'=>$period_data['rate'],
-                'freq'=>$data['freq'],
+                'freq'=>$data['compounding_freq'],
                 'df'=>$period_data[df],
                 'dt'=>$period_data[dt],
                 'base'=>$data[base],
@@ -315,24 +461,24 @@ class Planner
                 'note'=>$period_data[note],
             ];
             $calc_interest=$this->interest->getInterest($data4interest);
-            //echo $this->html->pre_display($calc_interest,"calc_interest");
+            // echo $this->html->cols2($this->html->pre_display($data4interest,"data4interest $period_data[df] $period_data[dt] $period_data[note]"),
+            //     $this->html->pre_display($calc_interest,"calc_interest $period_data[df] $period_data[dt] $period_data[note]")
+            //     );
             $interest=$calc_interest[interest];
 
             $data4interest[rate]=$period_data['libor_rate'];//+$period_data['rate'];
             $calc_interest=$this->interest->getInterest($data4interest);
             $libor_interest=$calc_interest[interest];
 
-
             if(!($data[int_paid_last]>0))$interest_paid=$interest;
+            
             if(($period_data[note]!='chk')&&($period_data[note]!='loan')){
-
                 if($period_data[note]!='loan'){
                     $no++;
                     $no_str=$no;
                 }else{
                     $no_str='';
                 }
-
                 $pmt=(($no%$payment_range)==0)?$pmt_amount:0;
                 //echo "I.$no=".($no%$payment_range)." ($pmt)($pmt_amount)($payment_range)<br>";
                 if (($pmt==0)&&($no==$periods)) {
@@ -341,33 +487,40 @@ class Planner
                 if ($pmt>0) {
                     $amount=$pmt-$interest;
                     $interest_paid=$interest;
-                    if(($data[int_paid_last]>0))$interest_paid=$interest+$t_interest;
+                    if(($data[int_paid_last]>0))$interest_paid=$t_interest+$interest;
                 } else {
                     $amount=0;
                 }
                 if (($payment_range>1)&&($pmt>0)) {
                     $amount=$pmt;
                 }
-
-
-
                 $days=$period_data[days];//$this->dates->F_datediff($date_prev, $date, $data[base]);
-
-
                 $t_days+=$days;
             }else{
+                //echo "note:$period_data[note]<br>";
                 $total=0;
                 $amount=0;
-                $interest=0;
                 $no_str='';
                 $interest_paid=0;
-                $libor_interest=0;
+                if($period_data[note]=='chk'){
+                    $days=$period_data[days];
+                    $i--;
+                }else{
+                    $interest=0;
+                    $libor_interest=0;
+                }
             }
 
             $t_given+=$given;
             $t_paid+=$pmt;
             $t_interest_paid+=$interest_paid;
             $t_interest+=$interest;
+            $t_interest_compound_accum+=$interest;
+            //$data['interest_bf']=0;
+            if ((($i-1) % $data[compounding_mod] == 0)&&($period_data[note]!='chk')){
+                $t_interest_compound+=$t_interest_compound_accum;
+                $t_interest_compound_accum=0;
+            }
 
             $t_principal_paid+=$amount;
             $total=$amount+$interest_paid;
@@ -391,25 +544,30 @@ class Planner
                 $def_interest=$interest;
                 $init_interest=0;
             }
-            if ($this->dates->is_earlier($date, $data['dt'])) {
-                if($data[compound]>0){
-                    //$balance=$balance-$amount+$interest-$interest_paid;
-                    $balance=$t_given-$t_amount+$t_interest-$t_interest_paid;
+            if($period_data[note]!='chk'){
+                if ($this->dates->is_earlier($date, $data['dt'])) {
+                    if(($data[compound]>0)||($data[compounding]>0)){
+                        //$balance=$balance-$amount+$interest-$interest_paid;
+                        $balance=$t_given-$t_amount+$t_interest_compound-$t_interest_paid;
+                    }else{
+                        //$balance=$balance-$amount;
+                        $balance=$t_given-$t_amount-$t_paid;
+                    }
                 }else{
-                    //$balance=$balance-$amount;
-                    $balance=$t_given-$t_amount-$t_paid;
+                    if(($data[compound_default]>0)||($data[compounding_default]>0)){
+                        //$balance=$balance-$amount+$interest-$interest_paid;
+                        $balance=$t_given-$t_amount+$t_interest-$t_interest_paid;
+                    }else{
+                        $balance=$balance-$amount;
+                    }
                 }
             }else{
-                if($data[compound_default]>0){
-                    //$balance=$balance-$amount+$interest-$interest_paid;
-                    $balance=$t_given-$t_amount+$t_interest-$t_interest_paid;
-                }else{
-                    $balance=$balance-$amount;
-                }
+                // $t_interest_compound_accum+=$init_interest;
             }
+            
             $t_init_interest+=$init_interest;
             $t_def_interest+=$def_interest;
-
+            $t_bal=$balance+$t_interest_compound_accum;
             //echo \util::pre_display($period_data,"period_data");
             $tbl.="<tr class='$class'><td>$no_str</td>
             <td>$period_data[note]</td>
@@ -420,6 +578,9 @@ class Planner
             <td class='n'>".$this->html->money($interest_paid)."</td>
             <td class='n'>".$this->html->money($balance)."</td>
             <td class='n'>".$this->html->money($init_interest)."</td>
+            <td class='n'>".$this->html->money($t_init_interest)."</td>
+            <td class='n'>".$this->html->money($t_interest_compound_accum)."</td>
+            <td class='n'>".$this->html->money($t_bal)."</td>
             <td class='n'>".$this->html->money($rate*100,'','',5)." %</td>
             <td class='n'>".$this->html->money($def_interest)."</td>
             <td class='n'>".$this->html->money($def_rate*100,'','',5)." %</td>
@@ -444,6 +605,9 @@ class Planner
                 'int_paid'=>$interest_paid,
                 'balance'=>$balance,
                 'interest'=>$interest,
+                'interest_accum'=>$t_init_interest,
+                'interest_bal'=>$t_interest_compound_accum,
+                'total_bal'=>$t_bal,
                 'rate'=>$period_data['rate'],
                 'days'=>$days,
                 'default_interest'=>$default_interest,
@@ -456,19 +620,30 @@ class Planner
                 't_paid'=>$t_interest_paid+$t_principal_paid,
                 'info'=>'',
                 ];
+            if($period_data[note]=='chk'){
+                $data['balance_principal']=$data[amount]-$t_principal_paid;
+                $data['balance_interest']=$t_bal-($data[amount]-$t_principal_paid);
+                $data['balance_total']=$t_bal;
+
+                $t_interest_compound_accum-=$init_interest;
+                $t_init_interest-=$init_interest;
+                $t_interest-=$init_interest;
+
+            }
         }
         $totals=array_fill(0, 20, 0);
         $totals[2]=$data[amount];
         $totals[3]=$t_total_paid;
         $totals[4]=$t_principal_paid;
         $totals[5]=$t_interest_paid;
-        $totals[7]=$t_init_interest;
-        $totals[9]=$t_def_interest;
+        $totals[8]=$t_init_interest;
+        $totals[9]=$t_interest_compound_accum;
+        $totals[12]=$t_def_interest;
         //$totals[6]=$balance;
-        $totals[11]=$t_days;
+        $totals[14]=$t_days;
         if($data[maturity_id]>0){
             //$totals[12]=$t_default_interest;
-            $totals[12]=$t_libor_interest;
+            $totals[16]=$t_libor_interest;
             //$totals[12]=$t_margin_interest;
         }
 
@@ -478,6 +653,7 @@ class Planner
         $res[period_data]=$period_data_arr2;
         $res[tbl]=$tbl;
         $res[plan]=$plan;
+        //echo $this->html->pre_display($res,"res");
         return $res;
     }
 
