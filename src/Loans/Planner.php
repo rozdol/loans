@@ -100,7 +100,7 @@ class Planner
                 if ($data['align']>=$day) {
                     $days_add=$data['align']-$day;
                 } else {
-                    $days_add=$data['align']-$day + $this->days_in_month($date);
+                    $days_add=$data['align']-$day + $this->dates->days_in_month($date);
                 }
                 $align_text="$data[align] day of the month";
             } else {
@@ -240,6 +240,29 @@ class Planner
                 }
             }
 
+            if($use_eom>0){
+                // check for eom date
+                $year=$this->dates->F_extractyear($period_data[df])+1;
+                $month=$this->dates->F_extractmonth($period_data[df])+1;
+                $eom="01.$month.$year";
+                //echo $this->html->pre_display($eom,"eom");
+                if(($this->dates->is_earlier($eom,$period_data[dt],1))&&($this->dates->is_later($eom,$period_data[df],1))){
+                    $item_no++;
+                    $period_data_nm=[
+                        'no'=>$item_no,
+                        'df'=>$period_data[df],
+                        'dt'=>$eom,
+                        'days'=>$this->dates->F_datediff($period_data[df], $eom, $data[base]),
+                        't_days'=>$this->dates->F_datediff($date_initial, $eom, $data[base]),
+                        'note'=>'eom'
+                    ];
+                    $period_data_arr2[$item_no]=$period_data_nm;
+                    $period_data[df]=$eom;
+                    $period_data['days']=$this->dates->F_datediff($eom, $period_data[dt], $data[base]);
+                    $period_data['note']='align';
+                    echo $this->html->pre_display($period_data_nm,"period_data_nm");
+                }
+            }
             $item_no++;
             $periods++;
             $period_data['no']=$item_no;
@@ -264,7 +287,8 @@ class Planner
 
     public function getPlanV2($data)
     {
-        // echo $this->html->pre_display($data,"getPlanV2 data");
+        //echo $this->html->pre_display($data,"getPlanV2 data");
+        // echo $this->html->array_display($data[period_data],"period_data");
         $period_data_arr=$data[period_data];
         $balance_prev=$data[amount];
         $interest_accumulated=$data[interest_bf];
@@ -272,7 +296,7 @@ class Planner
         if($data[maturity_id]>0){
             $fields=array('#','Action','date','Given','Payment','Pcpl. paid','Int.paid','Balance','Interest','Int. Accum.','Interest Bal','Tot.Bal.','Int. rate total','Days','Margin rate','Floating int.','Floating rate','Rate date','');
         }else{
-            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','rate','def.Interest','Def.rate','days','');
+            $fields=array('#','Action','date','Given','Payment','Pcpl. paid','int.Paid','Balance','Interest','Int. accum.','Interest Bal','Tot.Bal.','Int. rate','days','');
         }
         $tbl=$this->html->tablehead($what, $qry, $order, $addbutton, $fields, 'no_sort');
         $m=0;

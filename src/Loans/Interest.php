@@ -25,8 +25,31 @@ class Interest
      * @return array
      */
 
+    function pre_display($text = '', $title = '', $class = '', $code = 0)
+    {
+        if ($_REQUEST[act]=='api') {
+            if ($title=='') {
+                $title='output';
+            }
+            $out=json_encode(["$title"=>$text]);
+        } else {
+            if ($title!='') {
+                $out.="<h3>$title</h3>";//$this->tag($title, 'foldered');
+            }
+            $out.="<pre class='$class'>";
+            if ($code==0) {
+                 $out.=htmlspecialchars(print_r($text, true));
+            } else {
+                $out.=htmlspecialchars(var_export($text, true));
+            }
+            $out.= "</pre>";
+        }
+        return $out;
+    }
+
     public function getInterest($data)
     {
+        //echo $this->pre_display($data,"data");
         /*
         0 or omitted    US (NASD) 30/360
         1                Actual/actual
@@ -38,7 +61,8 @@ class Interest
         $dt=$data[dt];
         //echo \util::pre_display($data,' data from interest'); //exit;
 
-        $daysinyear=($data[base]=='365')?$this->dates->F_daysinyear($res[df]):360;
+        $daysinyear=($data[base]=='366')?$this->dates->F_daysinyear($res[df]):360;
+        if($data[base]=='365')$daysinyear=365;
         if ($data[base]=='') {
             $data[base]='30/360';
         }
@@ -58,7 +82,8 @@ class Interest
             $days=$this->dates->F_datediff($res[df], $res[dt1]);
 
             //$daysinyear=$this->dates->F_daysinyear($res[dt1]);
-            $daysinyear=($data[base]=='365')?$this->dates->F_daysinyear($res[dt1]):360;
+            $daysinyear=($data[base]=='366')?$this->dates->F_daysinyear($res[dt1]):360;
+            if($data[base]=='365')$daysinyear=365;
             $years=$days/$daysinyear;
             $int=$res[amount]*$res[rate]*$years;
             $res[interest]+=$int;
@@ -82,7 +107,8 @@ class Interest
                     $date_to=$this->dates->F_dateadd($this->dates->F_dateadd_year($date, 1), -1);
                     $date_from=$date;
                     //$daysinyear=$this->dates->F_daysinyear($date_to);
-                    $daysinyear=($data[base]=='365')?$this->dates->F_daysinyear($date_to):360;
+                    $daysinyear=($data[base]=='366')?$this->dates->F_daysinyear($date_to):360;
+                    if($data[base]=='365')$daysinyear=365;
                     if ($this->dates->is_earlier($res[dt], $date_to)) {
                         $date_to=$res[dt];
                     }
