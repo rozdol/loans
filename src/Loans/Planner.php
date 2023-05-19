@@ -462,17 +462,13 @@ class Planner
                 $data['balance_interest']=$total_balance-($data[amount]-$t_principal_paid);
                 $data['balance_total']=$total_balance;
 
-                if(false){
-                    $interest_accumulated-=$interest_amount;
-                    $interest_balance-=$interest_amount;
-                    $total_libor_interest-=$libor_interest;
-                    $plain_interest-=$interest_amount;
-                }
-                
-
-
+                $interest_accumulated-=$interest_amount;
+                $interest_balance-=$interest_amount;
+                $total_libor_interest-=$libor_interest;
+                $plain_interest-=$interest_amount;
+                $t_def_interest-=$def_interest;
+                $t_tot_interest-=($def_interest+$interest_amount);
                 // $t_interest-=$interest_amount;
-
             }
 
             $balance_prev=$balance;
