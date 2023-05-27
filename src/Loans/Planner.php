@@ -76,6 +76,16 @@ class Planner
         $data['date']=$this->dates->F_date($data['date'],1);
         $days_chk=$this->dates->F_datediff($data['date'], $date_initial);
         //echo $this->html->pre_display($days_chk,"days_chk");
+
+        $period_data_chk=[
+            'no'=>$item_no,
+            'df'=>$date_prev,
+            'dt'=>$data['date'],
+            'days'=>$this->dates->F_datediff($date_prev, $data['date'], $data[base]),
+            't_days'=>$this->dates->F_datediff($date_initial, $data['date'], $data[base]),
+            'note'=>'chk',
+        ];
+
         if (($days_chk<=0)&&($found==0)) {
             $found=1;
             $period_data_chk=[
@@ -86,7 +96,7 @@ class Planner
                 't_days'=>$this->dates->F_datediff($date_initial, $data['date'], $data[base]),
                 'note'=>'chk',
             ];
-            //$period_data_arr[$item_no]=$period_data;
+            $period_data_arr[$item_no]=$period_data_chk;
         }
 
         if ($data['align']>0) {
@@ -211,9 +221,19 @@ class Planner
         foreach ($period_data_arr as $key => $period_data) {
 
             // check for chk date
-            if(($this->dates->is_earlier($period_data_chk[dt],$period_data[dt],0))&&($inserted==0)){
+            if(($this->dates->is_earlier($period_data_chk[dt],$period_data[dt],0))&&($inserted==0)&&($period_data_chk[dt]!='')&&($this->dates->F_datediff($period_data_chk[df], $period_data_chk[dt], $data[base])>0)){
+                //echo $this->html->pre_display($period_data_chk,"period_data_chk");
                 $inserted=1;
                 $item_no++;
+                // $period_data_chk=[
+                //     'no'=>$item_no,
+                //     'df'=>$period_data_arr2[$item_no-1][dt],//$date_prev,
+                //     'dt'=>$period_data_chk[dt],
+                //     'days'=>$this->dates->F_datediff($period_data_chk[df], $period_data_chk[dt], $data[base]),//$this->dates->F_datediff($date_prev, $data['date'], $data[base]),
+                //     't_days'=>$this->dates->F_datediff($date_initial, $data['date'], $data[base]),
+                //     'note'=>'chk',
+                // ];
+
                 $period_data_chk[df]=$period_data_arr2[$item_no-1][dt];
                 $period_data_chk[days]=$this->dates->F_datediff($period_data_chk[df], $period_data_chk[dt], $data[base]);
                 $period_data_chk['no']=$item_no;
@@ -272,7 +292,7 @@ class Planner
 
         }
         //insert chk date at the end
-        if($inserted==0){
+        if(($inserted==0)&&($this->dates->F_datediff($period_data_chk[df], $period_data_chk[dt], $data[base])>0)){
             $inserted=1;
             $item_no++;
             $period_data_chk['no']=$item_no;
@@ -289,8 +309,8 @@ class Planner
 
     public function getPlanV2($data)
     {
-        //echo $this->html->pre_display($data,"getPlanV2 data"); exit;
-        // echo $this->html->array_display($data[period_data],"period_data");
+        // if($data[debug_info]=='get_loan_plan') echo $this->html->pre_display($data,"getPlanV2 data"); //exit;
+        // echo $this->html->array_display($data[period_data],"period_data ".$data[debug_info]);
         $period_data_arr=$data[period_data];
         $balance_prev=$data[amount];
         $interest_accumulated=$data[interest_bf]+$data[default_interest_bf];
@@ -338,7 +358,7 @@ class Planner
                 'note'=>$period_data[note],
             ];
             $calc_interest=$this->interest->getInterest($data4interest);
-            // echo $this->html->cols2($this->html->pre_display($data4interest,"data4interest $period_data[df] $period_data[dt] $period_data[note]"),$this->html->pre_display($calc_interest,"calc_interest $period_data[df] $period_data[dt] $period_data[note]"));
+            // if($data[debug_info]=='get_loan_plan')echo $this->html->cols2($this->html->pre_display($data4interest,"data4interest ($i) $period_data[df] $period_data[dt] $period_data[note]"),$this->html->pre_display($calc_interest,"calc_interest $period_data[df] $period_data[dt] $period_data[note] ".$data[debug_info]));
             $interest=$calc_interest[interest];
 
             $data4interest[rate]=$period_data['libor_rate'];//+$period_data['rate'];
