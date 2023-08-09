@@ -368,7 +368,7 @@ class Planner
 
             if($data[default_interest_bf]>0){
                 $data4interest=[
-                    'amount'=>$balance_prev,
+                    'amount'=>$data[default_interest_bf],//$balance_prev,
                     'rate'=>$data['d_rate'],
                     'freq'=>$data['compounding_freq'],
                     'df'=>$period_data[df],
