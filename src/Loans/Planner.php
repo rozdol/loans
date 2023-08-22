@@ -32,7 +32,7 @@ class Planner
      */
     public function getDates($data)
     {
-        // echo $this->html->pre_display($data,"getDates data");
+        // echo $this->html->pre_display($data,"getDates $data[debug_info]");
         $found=0;
         $periods=$data['periods'];
         $ignore_weekends=$data['ignore_weekends'];
@@ -87,7 +87,7 @@ class Planner
         ];
 
         if (($days_chk<=0)&&($found==0)) {
-            $found=1;
+            $found++;
             $period_data_chk=[
                 'no'=>$item_no,
                 'df'=>$date_prev,
@@ -96,7 +96,7 @@ class Planner
                 't_days'=>$this->dates->F_datediff($date_initial, $data['date'], $data[base]),
                 'note'=>'chk',
             ];
-            $period_data_arr[$item_no]=$period_data_chk;
+            // $period_data_arr[$item_no]=$period_data_chk;
         }
 
         if ($data['align']>0) {
@@ -104,13 +104,13 @@ class Planner
             $date_prev=$date;
 
             if ($data['align']<32) {
-                //echo "$data[align] ($date)<br>";
+                // echo "$data[align] ($date)<br>";
                 $day=substr($date, 0, 2);
-                    //echo "$day<br>";
+                    // echo "$day<br>";
                 if ($data['align']>=$day) {
                     $days_add=$data['align']-$day;
                 } else {
-                    $days_add=$data['align']-$day + $this->dates->days_in_month($date);
+                    $days_add=$data['align']-$day + $this->dates->days_in_month_date($date);
                 }
                 $align_text="$data[align] day of the month";
             } else {
@@ -307,10 +307,23 @@ class Planner
         return $res;
     }
 
+
+
+
+
+
+
     public function getPlanV2($data)
     {
         // if($data[debug_info]=='get_loan_plan') echo $this->html->pre_display($data,"getPlanV2 data"); //exit;
+        
         // echo $this->html->array_display($data[period_data],"period_data ".$data[debug_info]);
+        
+        if(($data[compound]) && (!$data[compound_formula])){
+            $data[compound]=0;
+            $data[compounding]=1;
+            $data[compounding_mod]=1;
+        }
         $period_data_arr=$data[period_data];
         $balance_prev=$data[amount];
         $interest_accumulated=$data[interest_bf]+$data[default_interest_bf];
@@ -356,8 +369,10 @@ class Planner
                 'base'=>$data[base],
                 'compound'=>$data[compound],
                 'note'=>$period_data[note],
+                'debug_info'=>"balance_prev=$balance_prev",
             ];
             $calc_interest=$this->interest->getInterest($data4interest);
+            // echo $this->html->pre_display($calc_interest[formula],"calc_interest folrmula");
             // if($data[debug_info]=='get_loan_plan')echo $this->html->cols2($this->html->pre_display($data4interest,"data4interest ($i) $period_data[df] $period_data[dt] $period_data[note]"),$this->html->pre_display($calc_interest,"calc_interest $period_data[df] $period_data[dt] $period_data[note] ".$data[debug_info]));
             $interest=$calc_interest[interest];
 
@@ -383,8 +398,10 @@ class Planner
 
             $interest_amount=$interest;
             $modulus=($m) % $data[compounding_mod];
+            // echo "$modulus=($m) % $data[compounding_mod];<br>";
             $interest_balance+=$interest_amount+$def_interest;
             if (($data[compounding]>0)&&($modulus == 0)&&($period_data[note]=='maturity')){
+                // echo "bal::$balance=$balance+$interest_balance;<br>";
                 $balance=$balance+$interest_balance;
                 $interest_balance=0;
             }
@@ -491,7 +508,9 @@ class Planner
                 // $t_interest-=$interest_amount;
             }
 
-            $balance_prev=$balance;
+            $balance_prev=$balance+$data[interest_bf];
+            $data[interest_bf]=0;
+
             $t_given+=$given;
             $t_returned+=$returned;
             $total_libor_interest+=$libor_interest;
@@ -536,6 +555,12 @@ class Planner
         //echo $this->html->pre_display($res,"res");
         return $res;
     }
+
+
+
+
+
+
     public function getPlan($data)
     {
         //echo $this->html->pre_display($data,"f:getPlan");
@@ -790,6 +815,11 @@ class Planner
         //echo $this->html->pre_display($res,"res");
         return $res;
     }
+
+
+
+
+
 
 
     public function planLoan($data)

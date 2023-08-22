@@ -61,7 +61,8 @@ class Interest
         $dt=$data[dt];
         //echo \util::pre_display($data,' data from interest'); //exit;
 
-        $daysinyear=($data[base]=='366')?$this->dates->F_daysinyear($res[df]):360;
+        // $daysinyear=(($data[base]=='366') || ($res[compound]=='t') ||($res[compound]!=0))?$this->dates->F_daysinyear($res[df]):360;
+        $daysinyear=(($data[base]=='366'))?$this->dates->F_daysinyear($res[df]):360;
         if($data[base]=='365')$daysinyear=365;
         if ($data[base]=='') {
             $data[base]='30/360';
