@@ -323,7 +323,11 @@ class Planner
             $data[compound]=0;
             $data[compounding]=1;
             $data[compounding_mod]=1;
+        }else{
+            $data[compounding]=0;
         }
+        $saved_interest_bf=$data[interest_bf];
+        // if($data[debug_info]=='get_loan_plan') echo $this->html->pre_display($data,"getPlanV2 data"); //exit;
         $period_data_arr=$data[period_data];
         $balance_prev=$data[amount];
         $interest_accumulated=$data[interest_bf]+$data[default_interest_bf];
@@ -548,11 +552,15 @@ class Planner
 
 
         $tbl.=$this->html->tablefoot($i, $totals, $no);
+        $data[interest_bf]=$saved_interest_bf;
         $res=$data;
         $res[period_data]=$period_data_arr2;
         $res[tbl]=$tbl;
         $res[plan]=$plan;
-        //echo $this->html->pre_display($res,"res");
+        
+        // $res[interest_accumulated]=$interest_accumulated;
+
+        // if($data[debug_info]!='calcLoanV2_2')echo $this->html->pre_display($res,"res");
         return $res;
     }
 
