@@ -330,6 +330,7 @@ class Planner
         // if($data[debug_info]=='get_loan_plan') echo $this->html->pre_display($data,"getPlanV2 data"); //exit;
         $period_data_arr=$data[period_data];
         $balance_prev=$data[amount];
+
         $interest_accumulated=$data[interest_bf]+$data[default_interest_bf];
         $main_interest_accumulated=$data[interest_bf];
         $def_interest_accumulated=$data[default_interest_bf];
@@ -365,7 +366,7 @@ class Planner
             $rate=$period_data['rate'];
             $margin_rate=$data['rate'];
             $data4interest=[
-                'amount'=>$balance_prev,
+                'amount'=>$balance,
                 'rate'=>$period_data['rate'],
                 'freq'=>$data['compounding_freq'],
                 'df'=>$period_data[df],

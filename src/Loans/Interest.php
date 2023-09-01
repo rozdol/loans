@@ -143,7 +143,7 @@ class Interest
         $res[formula]=substr($res[formula], 0, -3);
 
         $res[csv]=implode(';', $res);
-        //echo \util::pre_display($res,"Calc Interest $res[note]");
+        // echo \util::pre_display($res,"Calc Interest $res[note]");
         return $res;
     }
 }
