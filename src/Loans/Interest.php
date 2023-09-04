@@ -84,6 +84,8 @@ class Interest
 
             //$daysinyear=$this->dates->F_daysinyear($res[dt1]);
             $daysinyear=($data[base]=='366')?$this->dates->F_daysinyear($res[dt1]):360;
+            $res[daysinyear]=$daysinyear;
+            // echo "daysinyear:$daysinyear ($res[dt1])<br>";
             if($data[base]=='365')$daysinyear=365;
             $years=$days/$daysinyear;
             $int=$res[amount]*$res[rate]*$years;
@@ -140,6 +142,9 @@ class Interest
             $res[formula]="$res[amount]*pow((1+$res[rate]/$res[freq]), ($res[freq]*$res[years]))-$res[amount]   ";
         }
         //if($days==0)$res[interest]=0;
+        $rouded_interest=round($res[interest],4);
+        $res[rouded_interest]=$rouded_interest;
+        $res[formula]="[$rouded_interest] = ".$res[formula];
         $res[formula]=substr($res[formula], 0, -3);
 
         $res[csv]=implode(';', $res);

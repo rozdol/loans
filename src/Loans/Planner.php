@@ -503,13 +503,15 @@ class Planner
                 $data['balance_principal']=$data[amount]-$principal_paid_total;
                 $data['balance_interest']=$total_balance-($data[amount]-$t_principal_paid);
                 $data['balance_total']=$total_balance;
-
+                
+                /* Fix totals 04.09.2023
                 $interest_accumulated-=$interest_amount;
                 $interest_balance-=$interest_amount;
                 $total_libor_interest-=$libor_interest;
                 $plain_interest-=$interest_amount;
                 $t_def_interest-=$def_interest;
                 $t_tot_interest-=($def_interest+$interest_amount);
+                */
                 // $t_interest-=$interest_amount;
             }
 
