@@ -387,9 +387,45 @@ class Planner
 
 
             if($data[default_interest_bf]>0){
+                $rate_options=array(
+                    'On Pricipal Only'=>0,
+                    'On Interst Only'=>1,
+                    'On Pricipal and Interst'=>2,
+                    'On Pricipal Only with IBOR rate added'=>3,
+                    'On Interst Only with IBOR rate added'=>4,
+                    'On Pricipal and Interst with IBOR rate added'=>5
+                );
+
+                $def_int_amount=$balance;
+                $def_int_rate=$data['d_rate'];
+                if($data[default_interest_bf_opt]==0){ //
+                    $def_int_amount=$balance;
+                    $def_int_rate=$data['d_rate'];
+                }
+                if($data[default_interest_bf_opt]==1){
+                    $def_int_amount=$data[default_interest_bf];
+                    $def_int_rate=$data['d_rate'];
+                }
+                if($data[default_interest_bf_opt]==2){
+                    $def_int_amount=$balance+$data[default_interest_bf];
+                    $def_int_rate=$data['d_rate'];
+                }
+                if($data[default_interest_bf_opt]==3){ //
+                    $def_int_amount=$balance;
+                    $def_int_rate=$data['d_rate']+$period_data['libor_rate'];
+                }
+                if($data[default_interest_bf_opt]==4){
+                    $def_int_amount=$data[default_interest_bf];
+                    $def_int_rate=$data['d_rate']+$period_data['libor_rate'];
+                }
+                if($data[default_interest_bf_opt]==5){
+                    $def_int_amount=$balance+$data[default_interest_bf];
+                    $def_int_rate=$data['d_rate']+$period_data['libor_rate'];
+                }
+
                 $data4interest=[
-                    'amount'=>$balance,//$data[default_interest_bf],//$balance_prev,
-                    'rate'=>$data['d_rate'],//+$period_data['libor_rate'],
+                    'amount'=>$def_int_amount,//$balance,//$data[default_interest_bf],//$balance_prev,
+                    'rate'=>$def_int_rate,// $data['d_rate'],//+$period_data['libor_rate'],
                     'freq'=>$data['compounding_freq'],
                     'df'=>$period_data[df],
                     'dt'=>$period_data[dt],
