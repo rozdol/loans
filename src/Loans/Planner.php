@@ -315,7 +315,8 @@ class Planner
 
     public function getPlanV2($data)
     {
-        // if($data[debug_info]=='get_loan_plan') echo $this->html->pre_display($data,"getPlanV2 data"); //exit;
+        // if($data[debug_info]=='get_loan_plan') 
+        // echo $this->html->pre_display($data,"getPlanV2 data ($data[debug_info])"); //exit;
         
         // echo $this->html->array_display($data[period_data],"period_data ".$data[debug_info]);
         
@@ -362,7 +363,8 @@ class Planner
             $date=$period_data[dt];
             $given=($period_data[note]=='loan')?$data[amount]:0;
             $days=$period_data[days];//$this->dates->F_datediff($date_prev, $date, $data[base]);
-            if($period_data[note]!='chk')$t_days+=$days;
+            // if($period_data[note]!='chk')$t_days+=$days;
+            $t_days+=$days;
             $rate=$period_data['rate'];
             $margin_rate=$data['rate'];
             $data4interest=[
@@ -454,7 +456,7 @@ class Planner
             
             $total_balance=$balance+$interest_balance;
             $class='';
-            if($period_data[note]=='chk')$class='bold';
+            if(($period_data[note]=='chk')||($period_data[note]=='end'))$class='bold';
             $tbl.="<tr class='$class'><td>$no_str</td>
             <td>$period_data[note]</td>
             <td>$date</td>
@@ -489,7 +491,7 @@ class Planner
                 $tbl.="<td class='n'>".$this->html->money($data['d_rate']*100,'','',5)." %</td>";
             }
 
-            $tbl.="<td>$note</td>";
+            $tbl.="<td>$note $data[debug_info]</td>";
             //$tbl.="<td class='n'>G:".$this->html->money($t_given)." A:".$this->html->money($t_amount)." p:".$this->html->money($t_paid)." I:".$this->html->money($t_interest_paid)." ".$this->html->money($t_interest_paid)."</td>";
             $tbl.="</tr>";
 
@@ -599,7 +601,9 @@ class Planner
         
         // $res[interest_accumulated]=$interest_accumulated;
 
-        // if($data[debug_info]!='calcLoanV2_2')echo $this->html->pre_display($res,"res");
+        // if($data[debug_info]!='calcLoanV2_2')
+        // echo $this->html->pre_display($res,"res $data[debug_info]");
+        // echo $res[tbl];
         return $res;
     }
 
